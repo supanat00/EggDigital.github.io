@@ -1,0 +1,41 @@
+body,
+html {
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+}
+
+/* ซ่อนปุ่ม VR Mode */
+.a-enter-vr-button {
+  display: none !important;
+}
+
+/* ปิดตัวแสกน Target */
+.mindar-ui-overlay {
+  display: none !important;
+}
+
+/* พื้นหลัง UI หลัก เต็มหน้าจอ */
+.ui-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+#container {
+  width: 100vw;
+  height: 100vh;
+  position: relative;
+  overflow: hidden;
+}
+
+button {
+  width: 75px;
+  height: 35px;
+}

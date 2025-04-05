@@ -15,6 +15,15 @@
       {
         "html-has-lang": "off"
       }
+    ],
+    "no-inline-styles": "off",
+    "compat-api/html": [
+      "default",
+      {
+        "ignore": [
+          "script[type=importmap]"
+        ]
+      }
     ]
   }
 }
