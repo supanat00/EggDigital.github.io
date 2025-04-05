@@ -13,7 +13,7 @@
 
 
 <body>
-  <a-scene id="myScene" capture-ready
+  <a-scene id="myScene" screenshot
     mindar-image="imageTargetSrc: https://cdn.jsdelivr.net/gh/hiukim/mind-ar-js@1.2.5/examples/image-tracking/assets/card-example/card.mind;"
     color-space="sRGB" renderer="colorManagement: true, physicallyCorrectLights" vr-mode-ui="enabled: false"
     device-orientation-permission-ui="enabled: false">
@@ -33,7 +33,10 @@
       <a-gltf-model rotation="0 0 0 " position="0 0 0.1" scale="0.005 0.005 0.005" src="#avatarModel"
         animation="property: position; to: 0 0.1 0.1; dur: 1000; easing: easeInOutQuad; loop: true; dir: alternate">
     </a-entity>
-  </a-scene>
+    <a-entity>
+      <a-box color="red" position="0 0 -2" scale="0.5 0.5 0.5"></a-box>
+
+    </a-entity> </a-scene>
   <!-- Custom UI Layer -->
   <div class="ui-overlay">
     <div id="container"></div>
