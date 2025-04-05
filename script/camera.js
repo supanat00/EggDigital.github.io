@@ -1,5 +1,3 @@
-import { mockWithImage } from "./camera-mock.js";
-
 document.addEventListener("DOMContentLoaded", () => {
   const sceneEl = document.querySelector("#myScene");
   const renderer = sceneEl.renderer;
@@ -35,7 +33,6 @@ const captureAFrame = () => {
   const sceneEl = document.querySelector("#myScene");
   const renderer = sceneEl.renderer;
   const renderCanvas = renderer.domElement;
-  const videoEl = document.querySelector("video"); // ค้นหา <video> element (ถ้ามี)
 
   if (!renderCanvas) {
     console.error("A-Frame Canvas not found.");
@@ -47,41 +44,6 @@ const captureAFrame = () => {
   canvas.width = renderCanvas.width;
   canvas.height = renderCanvas.height;
 
-  if (videoEl) {
-    // คำนวณตำแหน่งและขนาดของวิดีโอให้เหมาะสมกับ Canvas ของ A-Frame
-    const videoAspectRatio = videoEl.videoWidth / videoEl.videoHeight;
-    const canvasAspectRatio = canvas.width / canvas.height;
-    let sx = 0,
-      sy = 0,
-      sWidth = videoEl.videoWidth,
-      sHeight = videoEl.videoHeight;
-    let dx = 0,
-      dy = 0,
-      dWidth = canvas.width,
-      dHeight = canvas.height;
-
-    if (videoAspectRatio > canvasAspectRatio) {
-      sWidth = videoEl.videoHeight * canvasAspectRatio;
-      sx = (videoEl.videoWidth - sWidth) / 2;
-    } else {
-      sHeight = videoEl.videoWidth / canvasAspectRatio;
-      sy = (videoEl.videoHeight - sHeight) / 2;
-    }
-
-    context.drawImage(
-      videoEl,
-      sx,
-      sy,
-      sWidth,
-      sHeight,
-      dx,
-      dy,
-      dWidth,
-      dHeight
-    );
-  }
-
-  // วาด A-Frame Canvas ลงบน Canvas Output
   context.drawImage(renderCanvas, 0, 0, canvas.width, canvas.height);
 
   const data = canvas.toDataURL("image/png");
