@@ -85,25 +85,31 @@ html {
 /* === Preview Result === */
 #previewModal {
   position: fixed;
+  width: 80%;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
   z-index: 1000; /* ให้แน่ใจว่ามันอยู่ด้านบนสุด */
-  background: rgba(0, 0, 0, 0.8); /* พื้นหลังโปร่งใสเล็กน้อย */
-  padding: 20px;
   border-radius: 10px;
 }
-#closePreview,
-#downloadImage,
+/* ปุ่มดาวน์โหลด */
+#downloadImage {
+  position: absolute;
+  bottom: -50px; /* ตั้งค่าตามที่ต้องการ */
+  right: 10px;
+}
+
+/* ปุ่มแชร์ */
 #shareImage {
-  cursor: pointer;
-  border: none;
-  background: #fff;
-  padding: 8px 16px;
-  margin: 4px;
-  border-radius: 5px;
+  position: absolute;
+  bottom: -50px;
+  left: 10px;
 }
 #closePreview {
+  position: absolute;
+  top: -20px; /* หรือตั้งค่าที่ต้องการเพื่อให้อยู่นอกกรอบ */
+  right: -20px;
   background: red;
+  color: white;
   color: white;
 }

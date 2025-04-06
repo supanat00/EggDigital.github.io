@@ -64,59 +64,6 @@ const captureAFrameCombined = () => {
   });
 };
 
-document.addEventListener("DOMContentLoaded", () => {
-  const photoButton = document.getElementById("photoButton");
-  const previewModal = document.getElementById("previewModal");
-  const previewImage = document.getElementById("previewImage");
-  const closePreview = document.getElementById("closePreview");
-  const downloadImage = document.getElementById("downloadImage");
-  const shareImage = document.getElementById("shareImage");
-
-  photoButton.addEventListener("click", function () {
-    console.log("Photo button was clicked!");
-    captureAFrameCombined(); // Capture and show preview
-  });
-
-  closePreview.addEventListener("click", function () {
-    previewModal.style.display = "none";
-  });
-
-  downloadImage.addEventListener("click", function () {
-    const link = document.createElement("a");
-    link.href = previewImage.src;
-    link.download = "egg-digital.png";
-    link.click();
-  });
-
-  shareImage.addEventListener("click", function () {
-    // Convert data URL to Blob
-    fetch(previewImage.src)
-      .then((response) => response.blob())
-      .then((blob) => {
-        const file = new File([blob], "shared_image.png", {
-          type: "image/png",
-        });
-        const shareData = {
-          files: [file],
-          title: "Shared Image",
-          text: "Check out this cool image!",
-        };
-
-        if (navigator.canShare && navigator.canShare(shareData)) {
-          navigator
-            .share(shareData)
-            .then(() => console.log("Share successful"))
-            .catch((error) => console.error("Error sharing:", error));
-        } else {
-          console.error(
-            "Sharing not supported or the file type is not supported for sharing."
-          );
-        }
-      })
-      .catch(console.error);
-  });
-});
-
 /* === Video Record Function === */
 let mediaRecorder;
 let recordedChunks = [];
@@ -191,3 +138,65 @@ const exportVideo = () => {
   link.click();
   recordedChunks = []; // Reset chunks for new recordings
 };
+
+/* === UI Controller === */
+document.addEventListener("DOMContentLoaded", () => {
+  const photoButton = document.getElementById("photoButton");
+  const previewModal = document.getElementById("previewModal");
+  const previewImage = document.getElementById("previewImage");
+  const closePreview = document.getElementById("closePreview");
+  const downloadImage = document.getElementById("downloadImage");
+  const shareImage = document.getElementById("shareImage");
+
+  const toggleUIVisibility = (isVisible) => {
+    const uiElements = [photoButton, switchButton]; // เพิ่ม ID สลับโหมดถ้าจำเป็น
+    uiElements.forEach((el) => {
+      el.style.display = isVisible ? "block" : "none";
+    });
+  };
+
+  photoButton.addEventListener("click", function () {
+    console.log("Photo button was clicked!");
+    captureAFrameCombined(); // Capture and show preview
+    toggleUIVisibility(false); // ซ่อน UI เมื่อกำลังแสดง preview
+  });
+
+  closePreview.addEventListener("click", function () {
+    previewModal.style.display = "none";
+    toggleUIVisibility(true); // แสดง UI เมื่อปิด preview
+  });
+
+  downloadImage.addEventListener("click", function () {
+    const link = document.createElement("a");
+    link.href = previewImage.src;
+    link.download = "egg-digital.png";
+    link.click();
+  });
+
+  shareImage.addEventListener("click", function () {
+    fetch(previewImage.src)
+      .then((response) => response.blob())
+      .then((blob) => {
+        const file = new File([blob], "shared_image.png", {
+          type: "image/png",
+        });
+        const shareData = {
+          files: [file],
+          title: "Shared Image",
+          text: "Check out this cool image!",
+        };
+
+        if (navigator.canShare && navigator.canShare(shareData)) {
+          navigator
+            .share(shareData)
+            .then(() => console.log("Share successful"))
+            .catch((error) => console.error("Error sharing:", error));
+        } else {
+          console.error(
+            "Sharing not supported or the file type is not supported for sharing."
+          );
+        }
+      })
+      .catch(console.error);
+  });
+});
