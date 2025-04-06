@@ -20,32 +20,6 @@ const captureAFrameCombined = () => {
     return;
   }
 
-  renderCanvas.toBlob((blob) => {
-    if (!blob) {
-      console.error("Failed to capture blob from canvas.");
-      return;
-    }
-    const file = new File([blob], "image.png", { type: "image/png" });
-    const shareData = {
-      files: [file],
-      title: "Check out this cool image!",
-      text: "I captured this cool A-Frame scene!",
-    };
-
-    if (
-      navigator.share &&
-      navigator.canShare &&
-      navigator.canShare({ files: [file] })
-    ) {
-      navigator
-        .share(shareData)
-        .then(() => console.log("Share successful"))
-        .catch((error) => console.error("Error sharing:", error));
-    } else {
-      console.error("Web Share API not available or file cannot be shared.");
-    }
-  }, "image/png");
-
   const videoEl = document.querySelector("video");
 
   const canvas = document.createElement("canvas");
@@ -115,17 +89,31 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   shareImage.addEventListener("click", function () {
-    if (navigator.share) {
-      navigator
-        .share({
+    // Convert data URL to Blob
+    fetch(previewImage.src)
+      .then((response) => response.blob())
+      .then((blob) => {
+        const file = new File([blob], "shared_image.png", {
+          type: "image/png",
+        });
+        const shareData = {
+          files: [file],
           title: "Shared Image",
           text: "Check out this cool image!",
-          url: previewImage.src,
-        })
-        .catch(console.error);
-    } else {
-      alert("Sharing not supported");
-    }
+        };
+
+        if (navigator.canShare && navigator.canShare(shareData)) {
+          navigator
+            .share(shareData)
+            .then(() => console.log("Share successful"))
+            .catch((error) => console.error("Error sharing:", error));
+        } else {
+          console.error(
+            "Sharing not supported or the file type is not supported for sharing."
+          );
+        }
+      })
+      .catch(console.error);
   });
 });
 
