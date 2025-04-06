@@ -11,6 +11,8 @@ document.addEventListener("DOMContentLoaded", () => {
   // คุณสามารถใช้ sceneEl, renderer, และ camera ในโค้ด A-Frame ของคุณได้
 });
 
+const aspectRatio = 16 / 9;
+
 const captureAFrameCombined = () => {
   const sceneEl = document.querySelector("#myScene");
   if (!sceneEl) {
@@ -32,8 +34,8 @@ const captureAFrameCombined = () => {
   requestAnimationFrame(() => {
     const canvas = document.createElement("canvas");
     const context = canvas.getContext("2d");
-    canvas.width = renderCanvas.width;
-    canvas.height = renderCanvas.height;
+    canvas.width = 1280; // ตัวอย่าง: กำหนดความกว้างเป็น 1280 pixels
+    canvas.height = canvas.width / aspectRatio; // คำนวณความสูงจากอัตราส่วน
 
     // วาดภาพจาก Video ก่อน (ถ้ามี)
     if (videoEl) {
@@ -87,3 +89,63 @@ if (screenshotButton) {
 } else {
   console.error("Screenshot button not found.");
 }
+
+let mediaRecorder;
+let recordedChunks = [];
+
+const startRecording = () => {
+  const canvas = document.createElement("canvas");
+  const context = canvas.getContext("2d");
+  const sceneEl = document.querySelector("#myScene");
+  const renderer = sceneEl.renderer;
+  const renderCanvas = renderer.domElement;
+  const videoEl = document.querySelector("video");
+
+  canvas.width = 1280; // ตัวอย่าง: กำหนดความกว้างเป็น 1280 pixels
+  canvas.height = canvas.width / aspectRatio; // คำนวณความสูงจากอัตราส่วน
+
+  // ตั้งค่าการบันทึก
+  const stream = canvas.captureStream(30); // 30 FPS แต่ควรปรับตามความต้องการ
+  mediaRecorder = new MediaRecorder(stream, {
+    mimeType: "video/webm; codecs=vp9",
+  });
+
+  mediaRecorder.ondataavailable = (event) => {
+    if (event.data.size > 0) recordedChunks.push(event.data);
+  };
+
+  mediaRecorder.onstop = () => {
+    const blob = new Blob(recordedChunks, { type: "video/webm" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "recorded_video.webm";
+    link.click();
+    recordedChunks = []; // รีเซ็ตชั่วคราวสำหรับบันทึกใหม่
+  };
+
+  mediaRecorder.start();
+
+  // เริ่มต้นวาดภาพลงบน canvas ตามอัตราเฟรมที่กำหนด
+  function drawVideo() {
+    if (videoEl) {
+      context.drawImage(videoEl, 0, 0, canvas.width, canvas.height);
+    }
+    context.drawImage(renderCanvas, 0, 0, canvas.width, canvas.height);
+    requestAnimationFrame(drawVideo);
+  }
+
+  drawVideo();
+};
+
+const stopRecording = () => {
+  if (mediaRecorder) {
+    mediaRecorder.stop();
+  }
+};
+
+const startButton = document.getElementById("startButton");
+startButton.addEventListener("click", startRecording);
+
+const stopButton = document.getElementById("stopButton");
+stopButton.addEventListener("click", stopRecording);
