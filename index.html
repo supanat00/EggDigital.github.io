@@ -36,11 +36,27 @@
   </a-scene>
   <!-- Custom UI Layer -->
   <div class="ui-overlay">
-    <div id="container"></div>
-    <button id="screenshot">Capture</button>
-    <button id="startButton">Start</button>
-    <button id="stopButton">Stop</button>
+    <div class="photo-button" id="photoButton">
+      <div class="circle"></div>
+      <div class="ring"></div>
+    </div>
+    <button class="switch-button" id="switchButton">Switch</button>
   </div>
+
+  <div id="previewModal" style="display: none;">
+    <img id="previewImage" src="" alt="Preview Image"
+      style="max-width: 100%; border: 3px solid white; border-radius: 8px;">
+    <div style="position: absolute; top: 10px; right: 10px;">
+      <button id="closePreview">✖</button>
+    </div>
+    <div style="position: absolute; bottom: 10px; right: 10px;">
+      <button id="downloadImage">Download</button>
+    </div>
+    <div style="position: absolute; bottom: 10px; left: 10px;">
+      <button id="shareImage">Share</button>
+    </div>
+  </div>
+
 </body>
 
 </html>

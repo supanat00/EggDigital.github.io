@@ -28,14 +28,82 @@ html {
   align-items: center;
 }
 
-#container {
-  width: 100vw;
-  height: 100vh;
-  position: relative;
-  overflow: hidden;
+/* ============== Camera UI ============== */
+/* === Photo-Button === */
+.photo-button {
+  width: 80px;
+  height: 80px;
+  bottom: 5%;
+  left: 50%;
+  transform: translateX(-50%);
+  position: absolute;
+}
+.circle {
+  position: absolute;
+  top: 12%;
+  left: 12%;
+  bottom: 12%;
+  right: 12%;
+  border-radius: 100%;
+  background-color: #ffffff;
+  opacity: 1;
+}
+.ring {
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  right: 0;
+  border-radius: 100%;
+  border: 0.3em solid #ffffff;
+  opacity: 0.8;
+}
+.photo-button .circle,
+.photo-button .ring {
+  transition: all 0.25s;
+}
+.photo-button:active .ring {
+  opacity: 1;
+}
+.photo-button:active .circle {
+  opacity: 0.5;
 }
 
-button {
-  width: 75px;
-  height: 35px;
+/* === Switch Mode (Capture/Video) === */
+.switch-button {
+  position: absolute;
+  right: 5%; /* ตำแหน่งมุมขวาล่าง */
+  bottom: 5%;
+  background-color: #000;
+  color: #fff;
+  border: none;
+  border-radius: 5px;
+  padding: 10px;
+  cursor: pointer;
+}
+
+/* === Preview Result === */
+#previewModal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 1000; /* ให้แน่ใจว่ามันอยู่ด้านบนสุด */
+  background: rgba(0, 0, 0, 0.8); /* พื้นหลังโปร่งใสเล็กน้อย */
+  padding: 20px;
+  border-radius: 10px;
+}
+#closePreview,
+#downloadImage,
+#shareImage {
+  cursor: pointer;
+  border: none;
+  background: #fff;
+  padding: 8px 16px;
+  margin: 4px;
+  border-radius: 5px;
+}
+#closePreview {
+  background: red;
+  color: white;
 }

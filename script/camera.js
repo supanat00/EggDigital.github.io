@@ -4,6 +4,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // คุณสามารถใช้ sceneEl, renderer, และ camera ในโค้ด A-Frame ของคุณได้
 });
 
+/* === Capture Image Function === */
 const captureAFrameCombined = () => {
   const sceneEl = document.querySelector("#myScene");
   if (!sceneEl) {
@@ -58,20 +59,51 @@ const captureAFrameCombined = () => {
     context.drawImage(renderCanvas, 0, 0, canvas.width, canvas.height);
 
     const data = canvas.toDataURL("image/png");
-    const link = document.createElement("a");
-    link.download = "combined_capture.png";
-    link.href = data;
-    link.click();
+    previewImage.src = data; // Set path to the captured image
+    previewModal.style.display = "block";
   });
 };
 
-const screenshotButton = document.querySelector("#screenshot");
-if (screenshotButton) {
-  screenshotButton.addEventListener("click", captureAFrameCombined);
-} else {
-  console.error("Screenshot button not found.");
-}
+document.addEventListener("DOMContentLoaded", () => {
+  const photoButton = document.getElementById("photoButton");
+  const previewModal = document.getElementById("previewModal");
+  const previewImage = document.getElementById("previewImage");
+  const closePreview = document.getElementById("closePreview");
+  const downloadImage = document.getElementById("downloadImage");
+  const shareImage = document.getElementById("shareImage");
 
+  photoButton.addEventListener("click", function () {
+    console.log("Photo button was clicked!");
+    captureAFrameCombined(); // Capture and show preview
+  });
+
+  closePreview.addEventListener("click", function () {
+    previewModal.style.display = "none";
+  });
+
+  downloadImage.addEventListener("click", function () {
+    const link = document.createElement("a");
+    link.href = previewImage.src;
+    link.download = "downloaded_image.png";
+    link.click();
+  });
+
+  shareImage.addEventListener("click", function () {
+    if (navigator.share) {
+      navigator
+        .share({
+          title: "Shared Image",
+          text: "Check out this cool image!",
+          url: previewImage.src,
+        })
+        .catch(console.error);
+    } else {
+      alert("Sharing not supported");
+    }
+  });
+});
+
+/* === Video Record Function === */
 let mediaRecorder;
 let recordedChunks = [];
 
@@ -145,13 +177,3 @@ const exportVideo = () => {
   link.click();
   recordedChunks = []; // Reset chunks for new recordings
 };
-
-const startButton = document.getElementById("startButton");
-startButton.addEventListener("click", startVideoRecording);
-
-const stopButton = document.getElementById("stopButton");
-stopButton.addEventListener("click", () => {
-  if (mediaRecorder) {
-    mediaRecorder.stop();
-  }
-});
