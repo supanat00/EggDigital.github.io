@@ -20,6 +20,32 @@ const captureAFrameCombined = () => {
     return;
   }
 
+  renderCanvas.toBlob((blob) => {
+    if (!blob) {
+      console.error("Failed to capture blob from canvas.");
+      return;
+    }
+    const file = new File([blob], "image.png", { type: "image/png" });
+    const shareData = {
+      files: [file],
+      title: "Check out this cool image!",
+      text: "I captured this cool A-Frame scene!",
+    };
+
+    if (
+      navigator.share &&
+      navigator.canShare &&
+      navigator.canShare({ files: [file] })
+    ) {
+      navigator
+        .share(shareData)
+        .then(() => console.log("Share successful"))
+        .catch((error) => console.error("Error sharing:", error));
+    } else {
+      console.error("Web Share API not available or file cannot be shared.");
+    }
+  }, "image/png");
+
   const videoEl = document.querySelector("video");
 
   const canvas = document.createElement("canvas");
@@ -84,7 +110,7 @@ document.addEventListener("DOMContentLoaded", () => {
   downloadImage.addEventListener("click", function () {
     const link = document.createElement("a");
     link.href = previewImage.src;
-    link.download = "downloaded_image.png";
+    link.download = "egg-digital.png";
     link.click();
   });
 
