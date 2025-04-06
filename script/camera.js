@@ -183,6 +183,7 @@ document.addEventListener("DOMContentLoaded", () => {
       console.log("Photo capturing started.");
       captureAFrameCombined();
     }
+    toggleUIVisibility(false);
   });
 
   // ปุ่มปิดหน้าต่างพรีวิว
