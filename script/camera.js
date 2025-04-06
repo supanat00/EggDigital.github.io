@@ -1,9 +1,3 @@
-document.addEventListener("DOMContentLoaded", () => {
-  const sceneEl = document.querySelector("#myScene");
-  console.log("A-Frame Scene Element:", sceneEl);
-  // คุณสามารถใช้ sceneEl, renderer, และ camera ในโค้ด A-Frame ของคุณได้
-});
-
 /* === Capture Image Function === */
 const captureAFrameCombined = () => {
   const sceneEl = document.querySelector("#myScene");
@@ -95,7 +89,13 @@ const startVideoRecording = () => {
     if (event.data.size > 0) recordedChunks.push(event.data);
   };
 
-  mediaRecorder.onstop = exportVideo;
+  mediaRecorder.onstop = () => {
+    const blob = new Blob(recordedChunks, { type: "video/webm" });
+    const url = URL.createObjectURL(blob);
+    previewVideo.src = url;
+    previewModal.style.display = "block";
+    recordedChunks = []; // Reset chunks for new recordings
+  };
 
   mediaRecorder.start();
 
@@ -129,25 +129,44 @@ const startVideoRecording = () => {
   drawVideo();
 };
 
-const exportVideo = () => {
-  const blob = new Blob(recordedChunks, { type: "video/webm" });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = "recorded_video.webm";
-  link.click();
-  recordedChunks = []; // Reset chunks for new recordings
+const stopVideoRecording = () => {
+  mediaRecorder.stop();
 };
 
 /* === UI Controller === */
 document.addEventListener("DOMContentLoaded", () => {
+  const sceneEl = document.querySelector("#myScene");
+  console.log("A-Frame Scene Element:", sceneEl);
   const photoButton = document.getElementById("photoButton");
+  const toggleInput = document.getElementById("toggleInput");
+  const circle = document.querySelector(".circle");
+  const ring = document.querySelector(".ring");
   const previewModal = document.getElementById("previewModal");
   const previewImage = document.getElementById("previewImage");
   const closePreview = document.getElementById("closePreview");
   const downloadImage = document.getElementById("downloadImage");
   const shareImage = document.getElementById("shareImage");
+  let isVideoMode = false;
 
+  // กำหนดฟังก์ชันเริ่มต้นของปุ่มถ่ายภาพ
+  photoButton.onclick = captureAFrameCombined;
+
+  // ฟังก์ชันสำหรับการเปลี่ยนแปลงโหมด
+  toggleInput.addEventListener("change", () => {
+    isVideoMode = toggleInput.checked; // อัปเดตสถานะตามสถานะของ input
+    if (isVideoMode) {
+      console.log("Switched to Video Mode");
+      circle.style.backgroundColor = "#f00c0c";
+      ring.style.animation = "pulse 2s infinite";
+      photoButton.onclick = startVideoRecording; // ตั้งค่าใหม่เป็นฟังก์ชันถ่ายวิดีโอ
+    } else {
+      console.log("Switched to Photo Mode");
+      circle.style.backgroundColor = "#ffffff";
+      ring.style.animation = "none";
+      photoButton.onclick = captureAFrameCombined; // ตั้งค่าใหม่เป็นฟังก์ชันถ่ายภาพ
+    }
+  });
+  // ฟังก์ชันซ่อน UI กล้อง
   const toggleUIVisibility = (isVisible) => {
     const uiElements = [photoButton, switchButton]; // เพิ่ม ID สลับโหมดถ้าจำเป็น
     uiElements.forEach((el) => {
@@ -155,17 +174,24 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   };
 
+  // กำหนดฟังก์ชันเริ่มต้นสำหรับปุ่มถ่ายภาพ
   photoButton.addEventListener("click", function () {
-    console.log("Photo button was clicked!");
-    captureAFrameCombined(); // Capture and show preview
-    toggleUIVisibility(false); // ซ่อน UI เมื่อกำลังแสดง preview
+    if (isVideoMode) {
+      console.log("Video recording started.");
+      startVideoRecording();
+    } else {
+      console.log("Photo capturing started.");
+      captureAFrameCombined();
+    }
   });
 
+  // ปุ่มปิดหน้าต่างพรีวิว
   closePreview.addEventListener("click", function () {
     previewModal.style.display = "none";
     toggleUIVisibility(true); // แสดง UI เมื่อปิด preview
   });
 
+  // ปุ่มโหลด
   downloadImage.addEventListener("click", function () {
     const link = document.createElement("a");
     link.href = previewImage.src;
@@ -173,6 +199,7 @@ document.addEventListener("DOMContentLoaded", () => {
     link.click();
   });
 
+  // ปุ่มแชร์
   shareImage.addEventListener("click", function () {
     fetch(previewImage.src)
       .then((response) => response.blob())

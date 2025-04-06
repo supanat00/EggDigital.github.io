@@ -24,6 +24,12 @@
           "script[type=importmap]"
         ]
       }
+    ],
+    "axe/forms": [
+      "default",
+      {
+        "label": "off"
+      }
     ]
   }
 }

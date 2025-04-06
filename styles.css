@@ -69,17 +69,72 @@ html {
   opacity: 0.5;
 }
 
-/* === Switch Mode (Capture/Video) === */
+/* === Switch Button Mode (Capture/Video) === */
 .switch-button {
+  font-size: 17px;
   position: absolute;
   right: 5%; /* ตำแหน่งมุมขวาล่าง */
   bottom: 5%;
-  background-color: #000;
-  color: #fff;
-  border: none;
-  border-radius: 5px;
-  padding: 10px;
+  display: inline-block;
+  width: 64px;
+  height: 34px;
+}
+
+.switch-button input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
   cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #73c0fc;
+  transition: 0.4s;
+  border-radius: 30px;
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 30px;
+  width: 30px;
+  border-radius: 20px;
+  left: 2px;
+  bottom: 2px;
+  z-index: 2;
+  background-color: #e8e8e8;
+  transition: 0.4s;
+}
+
+.camera svg {
+  position: absolute;
+  top: 6px;
+  left: 36px;
+  z-index: 1;
+  width: 24px;
+  height: 24px;
+}
+
+.video svg {
+  position: absolute;
+  top: 5px;
+  left: 5px;
+  z-index: 1;
+  width: 24px;
+  height: 24px;
+}
+
+.input:focus + .slider {
+  box-shadow: 0 0 1px #183153;
+}
+
+.input:checked + .slider:before {
+  transform: translateX(30px);
 }
 
 /* === Preview Result === */
@@ -97,19 +152,54 @@ html {
   position: absolute;
   bottom: -50px; /* ตั้งค่าตามที่ต้องการ */
   right: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between; /* จัดให้เนื้อหาอยู่ตรงข้ามกัน */
+  width: auto; /* กำหนดความกว้างของปุ่ม */
+  padding: 4px 12px; /* พื้นที่ในปุ่ม */
+  background-color: transparent; /* พื้นหลังโปร่งใส */
+  color: #ffffff; /* สีข้อความ */
+  border: 1px solid #ffffff; /* ขอบสีขาวบางๆ */
+  border-radius: 10px; /* มุมโค้งมน */
+  cursor: pointer;
+  outline: none; /* ยกเลิกเส้นขอบที่เกิดขึ้นเมื่อคลิก */
+  background-color: #ffa500;
+  transition: background-color 0.3s, color 0.3s; /* การเปลี่ยนแปลงที่นุ่มนวล */
+}
+
+#downloadImage svg {
+  margin-left: 5px; /* ระยะห่างระหว่างข้อความและไอคอน */
 }
 
 /* ปุ่มแชร์ */
 #shareImage {
+  display: flex;
+  align-items: center;
+  justify-content: space-between; /* จัดให้เนื้อหาอยู่ตรงข้ามกัน */
+  width: auto; /* กำหนดความกว้างของปุ่ม */
+  padding: 4px 12px; /* พื้นที่ในปุ่ม */
+  background-color: transparent; /* พื้นหลังโปร่งใส */
+  color: #ffffff; /* สีข้อความ */
+  border: 1px solid #ffffff; /* ขอบสีขาวบางๆ */
+  border-radius: 10px; /* มุมโค้งมน */
+  cursor: pointer;
+  outline: none; /* ยกเลิกเส้นขอบที่เกิดขึ้นเมื่อคลิก */
   position: absolute;
-  bottom: -50px;
+  bottom: -50px; /* ตั้งค่าตามที่ต้องการ */
   left: 10px;
+  background-color: #ffa500;
+  transition: background-color 0.3s, color 0.3s; /* การเปลี่ยนแปลงที่นุ่มนวล */
 }
+#shareImage svg {
+  margin-left: 5px; /* ระยะห่างระหว่างข้อความและไอคอน */
+}
+
 #closePreview {
   position: absolute;
-  top: -20px; /* หรือตั้งค่าที่ต้องการเพื่อให้อยู่นอกกรอบ */
-  right: -20px;
-  background: red;
-  color: white;
-  color: white;
+  top: -35px; /* หรือตั้งค่าที่ต้องการเพื่อให้อยู่นอกกรอบ */
+  right: -35px;
+  background: none;
+  border: none;
+  padding: 0px;
+  margin: 0px;
 }
