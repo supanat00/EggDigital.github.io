@@ -53,8 +53,10 @@ const captureAFrameCombined = () => {
     context.drawImage(renderCanvas, 0, 0, canvas.width, canvas.height);
 
     const data = canvas.toDataURL("image/png");
+
     previewImage.src = data; // Set path to the captured image
     previewModal.style.display = "block";
+    previewImage.style.display = "block"; // Ensure image is visible
   });
 };
 
@@ -131,6 +133,31 @@ const startVideoRecording = () => {
 
 const stopVideoRecording = () => {
   mediaRecorder.stop();
+
+  mediaRecorder.onstop = () => {
+    const blob = new Blob(recordedChunks, { type: "video/webm" });
+    const url = URL.createObjectURL(blob);
+
+    // สร้างหรือค้นหาองค์ประกอบ video สำหรับ preview
+    let previewVideo = document.getElementById("previewVideo");
+    if (!previewVideo) {
+      previewVideo = document.createElement("video");
+      previewVideo.id = "previewVideo";
+      previewVideo.controls = false;
+      previewVideo.autoplay = true;
+      previewVideo.loop = true;
+      previewVideo.style.cssText =
+        "max-width: 100%; border: 3px solid white; border-radius: 8px;";
+      // ตรวจสอบว่า previewModal มีใน DOM แล้วเพิ่ม previewVideo ในนั้น
+      const previewModal = document.getElementById("previewModal");
+      if (previewModal) {
+        previewModal.appendChild(previewVideo);
+      }
+    }
+    previewVideo.src = url;
+    previewModal.style.display = "block"; // แสดง modal ที่มี video
+    recordedChunks = []; // รีเซ็ต chunks สำหรับบันทึกครั้งถัดไป
+  };
 };
 
 /* === UI Controller === */
@@ -147,23 +174,30 @@ document.addEventListener("DOMContentLoaded", () => {
   const downloadImage = document.getElementById("downloadImage");
   const shareImage = document.getElementById("shareImage");
   let isVideoMode = false;
+  let isRecording = false;
 
   // กำหนดฟังก์ชันเริ่มต้นของปุ่มถ่ายภาพ
   photoButton.onclick = captureAFrameCombined;
 
   // ฟังก์ชันสำหรับการเปลี่ยนแปลงโหมด
   toggleInput.addEventListener("change", () => {
-    isVideoMode = toggleInput.checked; // อัปเดตสถานะตามสถานะของ input
+    isVideoMode = toggleInput.checked;
     if (isVideoMode) {
-      console.log("Switched to Video Mode");
       circle.style.backgroundColor = "#f00c0c";
       ring.style.animation = "pulse 2s infinite";
-      photoButton.onclick = startVideoRecording; // ตั้งค่าใหม่เป็นฟังก์ชันถ่ายวิดีโอ
+      photoButton.onclick = () => {
+        if (!isRecording) {
+          startVideoRecording();
+          isRecording = true;
+        } else {
+          stopVideoRecording();
+          isRecording = false;
+        }
+      };
     } else {
-      console.log("Switched to Photo Mode");
       circle.style.backgroundColor = "#ffffff";
       ring.style.animation = "none";
-      photoButton.onclick = captureAFrameCombined; // ตั้งค่าใหม่เป็นฟังก์ชันถ่ายภาพ
+      photoButton.onclick = captureAFrameCombined;
     }
   });
   // ฟังก์ชันซ่อน UI กล้อง
@@ -176,44 +210,55 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // กำหนดฟังก์ชันเริ่มต้นสำหรับปุ่มถ่ายภาพ
   photoButton.addEventListener("click", function () {
-    if (isVideoMode) {
-      console.log("Video recording started.");
-      startVideoRecording();
-    } else {
-      console.log("Photo capturing started.");
-      captureAFrameCombined();
-    }
-    toggleUIVisibility(false);
+    console.log(isVideoMode ? "Video button clicked" : "Photo button clicked");
   });
 
+  function removePreviewVideoElement() {
+    let existingPreviewVideo = document.getElementById("previewVideo");
+    if (existingPreviewVideo && previewModal.contains(existingPreviewVideo)) {
+      previewModal.removeChild(existingPreviewVideo); // แก้ไขที่นี่
+    }
+  }
+
   // ปุ่มปิดหน้าต่างพรีวิว
-  closePreview.addEventListener("click", function () {
+  closePreview.addEventListener("click", () => {
     previewModal.style.display = "none";
-    toggleUIVisibility(true); // แสดง UI เมื่อปิด preview
+    previewImage.style.display = "none"; // Hide image
+
+    removePreviewVideoElement();
+
+    toggleUIVisibility(true); // แสดง UI อีกครั้ง
   });
 
   // ปุ่มโหลด
-  downloadImage.addEventListener("click", function () {
+  downloadImage.addEventListener("click", () => {
     const link = document.createElement("a");
-    link.href = previewImage.src;
-    link.download = "egg-digital.png";
+    if (isVideoMode) {
+      link.href = previewVideo.src;
+      link.download = "recorded_video.webm";
+    } else {
+      link.href = previewImage.src;
+      link.download = "captured_image.png";
+    }
     link.click();
   });
 
   // ปุ่มแชร์
-  shareImage.addEventListener("click", function () {
-    fetch(previewImage.src)
+  shareImage.addEventListener("click", () => {
+    const urlToShare = isVideoMode ? previewVideo.src : previewImage.src;
+    fetch(urlToShare)
       .then((response) => response.blob())
       .then((blob) => {
-        const file = new File([blob], "shared_image.png", {
-          type: "image/png",
-        });
+        const file = new File(
+          [blob],
+          isVideoMode ? "video.webm" : "image.png",
+          { type: blob.type }
+        );
         const shareData = {
           files: [file],
-          title: "Shared Image",
-          text: "Check out this cool image!",
+          title: "Shared Content",
+          text: "Check out this content I captured!",
         };
-
         if (navigator.canShare && navigator.canShare(shareData)) {
           navigator
             .share(shareData)
@@ -224,7 +269,6 @@ document.addEventListener("DOMContentLoaded", () => {
             "Sharing not supported or the file type is not supported for sharing."
           );
         }
-      })
-      .catch(console.error);
+      });
   });
 });
