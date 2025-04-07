@@ -78,13 +78,14 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   /* === Video Record Function === */
-  /* === Video Record Function === */
   const startVideoRecording = async () => {
     const sceneEl = document.querySelector("#myScene");
     if (!sceneEl) {
       console.error("A-Frame scene element not found.");
       return null;
     }
+
+    await new Promise((resolve) => setTimeout(resolve, 300));
 
     const renderer = sceneEl.renderer;
     const renderCanvas = renderer.domElement;
@@ -94,43 +95,31 @@ document.addEventListener("DOMContentLoaded", () => {
     const canvas = document.createElement("canvas");
     canvas.width = isLandscape ? 1280 : 720;
     canvas.height = isLandscape ? 720 : 1280;
-    const context = canvas.getContext("2d", { willReadFrequently: true });
+    const context = canvas.getContext("2d", {
+      willReadFrequently: true,
+      alpha: false,
+    });
 
-    // Create and initialize the encoder
+    context.imageSmoothingEnabled = true;
+    context.imageSmoothingQuality = "medium";
+
+    console.log("Creating encoder...");
     encoder = await HME.createH264MP4Encoder();
     encoder.width = canvas.width;
     encoder.height = canvas.height;
-
-    // ตั้งค่าเฟรมเรตที่ต้องการ
-    const targetFPS = 30;
-    encoder.frameRate = targetFPS;
-    encoder.quantizationParameter = 25; // Better quality (lower = better, range 10-51)
-    encoder.speed = 10; // Balance between encoding speed and compression (1-10)
-    encoder.groupOfPictures = 30; // Keyframe interval
-    encoder.kbps = 8000; // Higher bitrate for better quality
+    encoder.frameRate = 24; // ใช้ frame rate แบบคงที่
+    encoder.quantizationParameter = 26;
+    encoder.speed = 7;
+    encoder.groupOfPictures = 20;
+    encoder.kbps = 5000;
     encoder.initialize();
+    console.log("Encoder initialized");
 
-    // จำกัดการเรียกฟังก์ชัน drawVideo ให้ทำงานตามเฟรมเรตที่กำหนด
-    let lastFrameTime = Date.now();
-    const frameInterval = 1000 / targetFPS; // time between frames in ms
-    let frameCount = 0;
-    let startTime = Date.now();
-
-    const drawVideo = () => {
+    const recordFrame = () => {
       if (!isRecording) return;
 
-      const now = Date.now();
-      const elapsed = now - lastFrameTime;
-
-      // ตรวจสอบว่าถึงเวลาในการเพิ่มเฟรมใหม่หรือยัง
-      if (elapsed >= frameInterval) {
-        // ปรับเวลาการเพิ่มเฟรมถัดไปโดยคำนวณเวลาที่เกินมา
-        // ช่วยให้การเพิ่มเฟรมสอดคล้องกับเฟรมเรตที่ต้องการมากขึ้น
-        lastFrameTime = now - (elapsed % frameInterval);
-
-        context.clearRect(0, 0, canvas.width, canvas.height);
-
-        if (videoEl) {
+      try {
+        if (videoEl && videoEl.readyState >= 2) {
           const sourceWidth = videoEl.videoWidth;
           const sourceHeight = videoEl.videoHeight;
           const sourceRatio = sourceWidth / sourceHeight;
@@ -145,40 +134,31 @@ document.addEventListener("DOMContentLoaded", () => {
             drawHeight = drawWidth / sourceRatio;
           }
 
-          const offsetX = (canvas.width - drawWidth) / 2;
-          const offsetY = (canvas.height - drawHeight) / 2;
+          const offsetX = Math.floor((canvas.width - drawWidth) / 2);
+          const offsetY = Math.floor((canvas.height - drawHeight) / 2);
 
           context.drawImage(videoEl, offsetX, offsetY, drawWidth, drawHeight);
         }
 
-        // วาด AR scene บน canvas
         context.drawImage(renderCanvas, 0, 0, canvas.width, canvas.height);
 
-        // เพิ่มเฟรมลงใน encoder
-        encoder.addFrameRgba(
-          context.getImageData(0, 0, canvas.width, canvas.height).data
+        const imageData = context.getImageData(
+          0,
+          0,
+          canvas.width,
+          canvas.height
         );
-
-        // นับจำนวนเฟรมที่เพิ่มเข้าไป (สำหรับตรวจสอบ)
-        frameCount++;
-
-        // แสดงข้อมูล FPS จริงในคอนโซล (ทุก 1 วินาที)
-        const timeSinceStart = now - startTime;
-        if (timeSinceStart >= 1000) {
-          const realFPS = frameCount / (timeSinceStart / 1000);
-          console.log(`Actual FPS: ${realFPS.toFixed(2)}`);
-          frameCount = 0;
-          startTime = now;
-        }
+        encoder.addFrameRgba(imageData.data);
+      } catch (error) {
+        console.error("Error recording frame:", error);
       }
 
-      // ใช้ requestAnimationFrame เพื่อทำงานต่อเนื่อง
-      requestAnimationFrame(drawVideo);
+      setTimeout(recordFrame, 1000 / encoder.frameRate);
     };
 
-    drawVideo();
+    isRecording = true;
+    recordFrame();
 
-    // ซ่อนปุ่มสลับและอัปเดตสถานะ
     const switchButton = document.getElementById("switchButton");
     if (switchButton) switchButton.style.display = "none";
     circle.classList.add("recording");
