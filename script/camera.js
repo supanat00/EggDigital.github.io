@@ -101,7 +101,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const stream = canvas.captureStream(30); // 30 FPS
     mediaRecorder = new MediaRecorder(stream, {
-      mimeType: "video/webm; codecs=vp9",
+      mimeType: "video/mp4; codecs=vp9",
     });
 
     mediaRecorder.ondataavailable = (event) => {
@@ -109,7 +109,7 @@ document.addEventListener("DOMContentLoaded", () => {
     };
 
     mediaRecorder.onstop = () => {
-      const blob = new Blob(recordedChunks, { type: "video/webm" });
+      const blob = new Blob(recordedChunks, { type: "video/mp4" });
       const url = URL.createObjectURL(blob);
       previewVideo.src = url;
       previewModal.style.display = "block";
@@ -161,7 +161,7 @@ document.addEventListener("DOMContentLoaded", () => {
     mediaRecorder.stop();
 
     mediaRecorder.onstop = () => {
-      const blob = new Blob(recordedChunks, { type: "video/webm" });
+      const blob = new Blob(recordedChunks, { type: "video/mp4" });
       const url = URL.createObjectURL(blob);
 
       toggleUIVisibility(true);
