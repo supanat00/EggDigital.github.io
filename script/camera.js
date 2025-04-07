@@ -13,7 +13,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const shareImage = document.getElementById("shareImage");
   let isVideoMode = false;
   let isRecording = false;
-
+  let encoder; // Declare encoder here to make it accessible globally
   /* === Capture Image Function === */
   const captureAFrameCombined = () => {
     const sceneEl = document.querySelector("#myScene");
@@ -33,7 +33,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const videoEl = document.querySelector("video");
 
     const canvas = document.createElement("canvas");
-    const context = canvas.getContext("2d");
+    const context = canvas.getContext("2d", { willReadFrequently: true });
     const isLandscape = window.innerWidth > window.innerHeight;
     if (isLandscape) {
       canvas.width = 1280; // กำหนดความกว้างสำหรับแนวนอน
@@ -78,128 +78,163 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   /* === Video Record Function === */
-  let mediaRecorder;
-  let recordedChunks = [];
-
-  const startVideoRecording = () => {
+  /* === Video Record Function === */
+  const startVideoRecording = async () => {
     const sceneEl = document.querySelector("#myScene");
     if (!sceneEl) {
       console.error("A-Frame scene element not found.");
-      return;
+      return null;
     }
 
     const renderer = sceneEl.renderer;
     const renderCanvas = renderer.domElement;
     const videoEl = document.querySelector("video");
-
-    const canvas = document.createElement("canvas");
-    const context = canvas.getContext("2d");
     const isLandscape = window.innerWidth > window.innerHeight;
 
+    const canvas = document.createElement("canvas");
     canvas.width = isLandscape ? 1280 : 720;
     canvas.height = isLandscape ? 720 : 1280;
+    const context = canvas.getContext("2d", { willReadFrequently: true });
 
-    const stream = canvas.captureStream(30); // 30 FPS
-    mediaRecorder = new MediaRecorder(stream, {
-      mimeType: "video/mp4; codecs=vp9",
-    });
+    // Create and initialize the encoder
+    encoder = await HME.createH264MP4Encoder();
+    encoder.width = canvas.width;
+    encoder.height = canvas.height;
 
-    mediaRecorder.ondataavailable = (event) => {
-      if (event.data.size > 0) recordedChunks.push(event.data);
-    };
+    // ตั้งค่าเฟรมเรตที่ต้องการ
+    const targetFPS = 30;
+    encoder.frameRate = targetFPS;
+    encoder.quantizationParameter = 25; // Better quality (lower = better, range 10-51)
+    encoder.speed = 10; // Balance between encoding speed and compression (1-10)
+    encoder.groupOfPictures = 30; // Keyframe interval
+    encoder.kbps = 8000; // Higher bitrate for better quality
+    encoder.initialize();
 
-    mediaRecorder.onstop = () => {
-      const blob = new Blob(recordedChunks, { type: "video/mp4" });
-      const url = URL.createObjectURL(blob);
-      previewVideo.src = url;
-      previewModal.style.display = "block";
-      recordedChunks = []; // Reset chunks for new recordings
-    };
+    // จำกัดการเรียกฟังก์ชัน drawVideo ให้ทำงานตามเฟรมเรตที่กำหนด
+    let lastFrameTime = Date.now();
+    const frameInterval = 1000 / targetFPS; // time between frames in ms
+    let frameCount = 0;
+    let startTime = Date.now();
 
-    mediaRecorder.start();
-
-    // Function to update canvas with the latest video and scene content
     const drawVideo = () => {
-      if (videoEl) {
-        const sourceWidth = videoEl.videoWidth;
-        const sourceHeight = videoEl.videoHeight;
-        const sourceRatio = sourceWidth / sourceHeight;
-        const targetRatio = canvas.width / canvas.height;
+      if (!isRecording) return;
 
-        let drawWidth, drawHeight;
-        if (sourceRatio > targetRatio) {
-          drawHeight = canvas.height;
-          drawWidth = drawHeight * sourceRatio;
-        } else {
-          drawWidth = canvas.width;
-          drawHeight = drawWidth / sourceRatio;
+      const now = Date.now();
+      const elapsed = now - lastFrameTime;
+
+      // ตรวจสอบว่าถึงเวลาในการเพิ่มเฟรมใหม่หรือยัง
+      if (elapsed >= frameInterval) {
+        // ปรับเวลาการเพิ่มเฟรมถัดไปโดยคำนวณเวลาที่เกินมา
+        // ช่วยให้การเพิ่มเฟรมสอดคล้องกับเฟรมเรตที่ต้องการมากขึ้น
+        lastFrameTime = now - (elapsed % frameInterval);
+
+        context.clearRect(0, 0, canvas.width, canvas.height);
+
+        if (videoEl) {
+          const sourceWidth = videoEl.videoWidth;
+          const sourceHeight = videoEl.videoHeight;
+          const sourceRatio = sourceWidth / sourceHeight;
+          const targetRatio = canvas.width / canvas.height;
+
+          let drawWidth, drawHeight;
+          if (sourceRatio > targetRatio) {
+            drawHeight = canvas.height;
+            drawWidth = drawHeight * sourceRatio;
+          } else {
+            drawWidth = canvas.width;
+            drawHeight = drawWidth / sourceRatio;
+          }
+
+          const offsetX = (canvas.width - drawWidth) / 2;
+          const offsetY = (canvas.height - drawHeight) / 2;
+
+          context.drawImage(videoEl, offsetX, offsetY, drawWidth, drawHeight);
         }
 
-        const offsetX = (canvas.width - drawWidth) / 2;
-        const offsetY = (canvas.height - drawHeight) / 2;
+        // วาด AR scene บน canvas
+        context.drawImage(renderCanvas, 0, 0, canvas.width, canvas.height);
 
-        context.drawImage(videoEl, offsetX, offsetY, drawWidth, drawHeight);
+        // เพิ่มเฟรมลงใน encoder
+        encoder.addFrameRgba(
+          context.getImageData(0, 0, canvas.width, canvas.height).data
+        );
+
+        // นับจำนวนเฟรมที่เพิ่มเข้าไป (สำหรับตรวจสอบ)
+        frameCount++;
+
+        // แสดงข้อมูล FPS จริงในคอนโซล (ทุก 1 วินาที)
+        const timeSinceStart = now - startTime;
+        if (timeSinceStart >= 1000) {
+          const realFPS = frameCount / (timeSinceStart / 1000);
+          console.log(`Actual FPS: ${realFPS.toFixed(2)}`);
+          frameCount = 0;
+          startTime = now;
+        }
       }
 
-      context.drawImage(renderCanvas, 0, 0, canvas.width, canvas.height);
+      // ใช้ requestAnimationFrame เพื่อทำงานต่อเนื่อง
       requestAnimationFrame(drawVideo);
     };
 
     drawVideo();
 
-    // ซ่อนปุ่ม switch
+    // ซ่อนปุ่มสลับและอัปเดตสถานะ
     const switchButton = document.getElementById("switchButton");
-    switchButton.style.display = "none"; // ซ่อนปุ่ม
-    // เปลี่ยนสถานะของปุ่มเพื่อบ่งบอกว่ากำลังบันทึก
-    const circle = document.querySelector(".circle");
-    const ring = document.querySelector(".ring");
+    if (switchButton) switchButton.style.display = "none";
     circle.classList.add("recording");
     ring.classList.add("recording");
+
+    return true;
   };
 
-  const stopVideoRecording = () => {
-    mediaRecorder.stop();
+  const stopVideoRecording = async () => {
+    if (!encoder) {
+      console.error("Encoder is not initialized.");
+      return;
+    }
 
-    mediaRecorder.onstop = () => {
-      const blob = new Blob(recordedChunks, { type: "video/mp4" });
-      const url = URL.createObjectURL(blob);
+    // Stop recording loop
+    isRecording = false;
 
-      toggleUIVisibility(true);
-      const circle = document.querySelector(".circle");
-      const ring = document.querySelector(".ring");
-      circle.classList.remove("recording");
-      ring.classList.remove("recording");
-      // แสดงปุ่ม switch อีกครั้ง
-      const switchButton = document.getElementById("switchButton");
-      switchButton.style.display = "block"; // แสดงปุ่ม
+    // Finalize recording
+    encoder.finalize();
+    const uint8Array = encoder.FS.readFile(encoder.outputFilename);
+    const url = URL.createObjectURL(
+      new Blob([uint8Array], { type: "video/mp4" })
+    );
 
-      // สร้างหรือค้นหาองค์ประกอบ video สำหรับ preview
-      let previewVideo = document.getElementById("previewVideo");
-      if (!previewVideo) {
-        previewVideo = document.createElement("video");
-        previewVideo.id = "previewVideo";
-        previewVideo.controls = false;
-        previewVideo.autoplay = true;
-        previewVideo.loop = true;
-        previewVideo.style.cssText =
-          "max-width: 100%; border: 3px solid white; border-radius: 8px;";
-        // ตรวจสอบว่า previewModal มีใน DOM แล้วเพิ่ม previewVideo ในนั้น
-        const previewModal = document.getElementById("previewModal");
-        if (previewModal) {
-          previewModal.appendChild(previewVideo);
-        }
-      }
-      previewVideo.src = url;
-      toggleUIVisibility(false);
-      previewModal.style.display = "block"; // แสดง modal ที่มี video
-      recordedChunks = []; // รีเซ็ต chunks สำหรับบันทึกครั้งถัดไป
-    };
+    let previewVideo = document.getElementById("previewVideo");
+    if (!previewVideo) {
+      previewVideo = document.createElement("video");
+      previewVideo.id = "previewVideo";
+      previewVideo.controls = true;
+      previewVideo.autoplay = true;
+      previewVideo.loop = true;
+      previewVideo.style.cssText =
+        "max-width: 100%; border: 3px solid white; border-radius: 8px;";
+      document.getElementById("previewModal").appendChild(previewVideo);
+    }
+    previewVideo.src = url;
+    document.getElementById("previewModal").style.display = "block";
+
+    // Clean up encoder
+    encoder.delete();
+    encoder = null;
+
+    // Reset UI
+    const photoButton = document.getElementById("photoButton");
+    photoButton.style.display = "none";
+    const circle = document.querySelector(".circle");
+    const ring = document.querySelector(".ring");
+    circle.classList.remove("recording");
+    ring.classList.remove("recording");
   };
 
   // กำหนดฟังก์ชันเริ่มต้นของปุ่มถ่ายภาพ
   photoButton.onclick = captureAFrameCombined;
 
   // ฟังก์ชันสำหรับการเปลี่ยนแปลงโหมด
+  // Toggle mode function
   toggleInput.addEventListener("change", () => {
     isVideoMode = toggleInput.checked;
     if (isVideoMode) {
@@ -222,6 +257,7 @@ document.addEventListener("DOMContentLoaded", () => {
       photoButton.onclick = captureAFrameCombined;
     }
   });
+
   // ฟังก์ชันซ่อน UI กล้อง
   const toggleUIVisibility = (isVisible) => {
     const uiElements = [photoButton, switchButton]; // เพิ่ม ID สลับโหมดถ้าจำเป็น
@@ -257,7 +293,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const link = document.createElement("a");
     if (isVideoMode) {
       link.href = previewVideo.src;
-      link.download = "recorded_video.webm";
+      link.download = "recorded_video.mp4"; // เปลี่ยนเป็น .mp4
     } else {
       link.href = previewImage.src;
       link.download = "captured_image.png";
@@ -267,15 +303,25 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // ปุ่มแชร์
   shareImage.addEventListener("click", () => {
-    const urlToShare = isVideoMode ? previewVideo.src : previewImage.src;
+    let urlToShare;
+    if (isVideoMode) {
+      const previewVideo = document.getElementById("previewVideo");
+      if (previewVideo) {
+        urlToShare = previewVideo.src;
+      } else {
+        console.error("Preview video element not found");
+        return;
+      }
+    } else {
+      urlToShare = previewImage.src;
+    }
+
     fetch(urlToShare)
       .then((response) => response.blob())
       .then((blob) => {
-        const file = new File(
-          [blob],
-          isVideoMode ? "video.webm" : "image.png",
-          { type: blob.type }
-        );
+        const file = new File([blob], isVideoMode ? "video.mp4" : "image.png", {
+          type: blob.type,
+        });
         const shareData = {
           files: [file],
           title: "Shared Content",
