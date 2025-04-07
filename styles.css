@@ -55,9 +55,36 @@ html {
   left: 0;
   bottom: 0;
   right: 0;
+}
+
+.ring.recording {
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  right: 0;
   border-radius: 100%;
-  border: 0.3em solid #ffffff;
-  opacity: 0.8;
+  position: relative;
+
+  svg {
+    width: 100%;
+    height: 100%;
+    .circle {
+      stroke-dashoffset: 0;
+      stroke-dasharray: 300;
+      stroke-width: 1.2;
+      animation: dash 30s linear alternate infinite;
+    }
+  }
+}
+
+@keyframes dash {
+  from {
+    stroke-dashoffset: 300;
+  }
+  to {
+    stroke-dashoffset: 200;
+  }
 }
 
 /* สำหรับรูปทรงสี่เหลี่ยมมุมโค้งมนตอนบันทึก */
@@ -110,10 +137,6 @@ html {
   }
 }
 
-.photo-button .circle,
-.photo-button .ring {
-  transition: all 0.25s;
-}
 .photo-button:active .ring {
   opacity: 1;
 }

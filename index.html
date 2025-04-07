@@ -41,11 +41,14 @@
   <div class="ui-overlay">
     <div class="photo-button" id="photoButton">
       <div class="circle"></div>
-      <div class="ring"></div>
+      <div class="ring">
+        <svg viewBox="0 0 32 32">
+          <circle class="circle" r="15" cx="16" cy="16" fill="transparent" transform="rotate(-90 16 16)"
+            stroke="#FFFFFF"></circle>
+        </svg>
+      </div>
     </div>
     <!-- Switch Capture/Video Mode Button -->
-    <!-- <button class="switch-button" id="switchButton">Switch</button> -->
-
     <div class="switch-button" id="switchButton">
       <label>
         <span class="camera"><svg width="24px" height="24px" viewBox="0 0 24 24" fill="none"
@@ -66,8 +69,6 @@
         <span class="slider"></span>
       </label>
     </div>
-
-
   </div>
   <!-- Preview UI -->
   <div id="previewModal" style="display: none;">

@@ -203,7 +203,8 @@ document.addEventListener("DOMContentLoaded", () => {
   toggleInput.addEventListener("change", () => {
     isVideoMode = toggleInput.checked;
     if (isVideoMode) {
-      circle.style.backgroundColor = "#f00c0c";
+      circle.style.backgroundImage =
+        "linear-gradient(145deg, #ff5252, #d50000)";
       ring.style.animation = "pulse 2s infinite";
       photoButton.onclick = () => {
         if (!isRecording) {
@@ -215,7 +216,8 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       };
     } else {
-      circle.style.backgroundColor = "#ffffff";
+      circle.style.backgroundImage =
+        "linear-gradient(145deg, #ffffff, #ffffff)";
       ring.style.animation = "none";
       photoButton.onclick = captureAFrameCombined;
     }
