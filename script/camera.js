@@ -11,9 +11,15 @@ document.addEventListener("DOMContentLoaded", () => {
   const closePreview = document.getElementById("closePreview");
   const downloadImage = document.getElementById("downloadImage");
   const shareImage = document.getElementById("shareImage");
+  const switchButton = document.getElementById("switchButton");
+
   let isVideoMode = false;
   let isRecording = false;
   let encoder; // Declare encoder here to make it accessible globally
+  let mediaRecorder; // Declare MediaRecorder
+  let recordedChunks = []; // Store recorded chunks
+  let canvasStream; // Canvas stream for MediaRecorder
+
   /* === Capture Image Function === */
   const captureAFrameCombined = () => {
     const sceneEl = document.querySelector("#myScene");
@@ -77,7 +83,153 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   };
 
-  /* === Video Record Function === */
+  /* === Create Canvas for Recording === */
+  const createRecordingCanvas = () => {
+    const sceneEl = document.querySelector("#myScene");
+    if (!sceneEl) {
+      console.error("A-Frame scene element not found.");
+      return null;
+    }
+
+    const renderer = sceneEl.renderer;
+    const renderCanvas = renderer.domElement;
+    const videoEl = document.querySelector("video");
+    const isLandscape = window.innerWidth > window.innerHeight;
+
+    const canvas = document.createElement("canvas");
+    canvas.width = isLandscape ? 1280 : 720;
+    canvas.height = isLandscape ? 720 : 1280;
+    const context = canvas.getContext("2d", {
+      willReadFrequently: true,
+      alpha: false,
+    });
+
+    context.imageSmoothingEnabled = true;
+    context.imageSmoothingQuality = "medium";
+
+    return { canvas, context, renderCanvas, videoEl };
+  };
+
+  /* === MediaRecorder functions === */
+  const startMediaRecording = () => {
+    const { canvas, context, renderCanvas, videoEl } = createRecordingCanvas();
+    if (!canvas) return false;
+
+    // Reset recorded chunks
+    recordedChunks = [];
+
+    // Create a drawing function that will continuously update the canvas
+    const drawToCanvas = () => {
+      if (!isRecording) return;
+
+      try {
+        if (videoEl && videoEl.readyState >= 2) {
+          const sourceWidth = videoEl.videoWidth;
+          const sourceHeight = videoEl.videoHeight;
+          const sourceRatio = sourceWidth / sourceHeight;
+          const targetRatio = canvas.width / canvas.height;
+
+          let drawWidth, drawHeight;
+          if (sourceRatio > targetRatio) {
+            drawHeight = canvas.height;
+            drawWidth = drawHeight * sourceRatio;
+          } else {
+            drawWidth = canvas.width;
+            drawHeight = drawWidth / sourceRatio;
+          }
+
+          const offsetX = Math.floor((canvas.width - drawWidth) / 2);
+          const offsetY = Math.floor((canvas.height - drawHeight) / 2);
+
+          context.drawImage(videoEl, offsetX, offsetY, drawWidth, drawHeight);
+        }
+
+        context.drawImage(renderCanvas, 0, 0, canvas.width, canvas.height);
+      } catch (error) {
+        console.error("Error drawing to canvas:", error);
+      }
+
+      if (isRecording) {
+        requestAnimationFrame(drawToCanvas);
+      }
+    };
+
+    // Start drawing
+    drawToCanvas();
+
+    try {
+      // Get the canvas stream
+      canvasStream = canvas.captureStream(30); // 30fps
+
+      // Create MediaRecorder
+      mediaRecorder = new MediaRecorder(canvasStream, {
+        mimeType: "video/webm;codecs=vp9",
+        videoBitsPerSecond: 5000000, // 5 Mbps
+      });
+
+      // Handle data available event
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          recordedChunks.push(event.data);
+        }
+      };
+
+      // Handle stop event
+      mediaRecorder.onstop = () => {
+        const blob = new Blob(recordedChunks, { type: "video/webm" });
+        const url = URL.createObjectURL(blob);
+
+        let previewVideo = document.getElementById("previewVideo");
+        if (!previewVideo) {
+          previewVideo = document.createElement("video");
+          previewVideo.id = "previewVideo";
+          previewVideo.controls = true;
+          previewVideo.autoplay = true;
+          previewVideo.loop = true;
+          previewVideo.style.cssText =
+            "max-width: 100%; border: 3px solid white; border-radius: 8px;";
+          document.getElementById("previewModal").appendChild(previewVideo);
+        }
+        previewVideo.src = url;
+        document.getElementById("previewModal").style.display = "block";
+
+        // Clean up stream tracks
+        canvasStream.getTracks().forEach((track) => track.stop());
+      };
+
+      // Start recording
+      mediaRecorder.start(1000); // Collect data in 1-second chunks
+      isRecording = true;
+
+      // Update UI
+      if (switchButton) switchButton.style.display = "none";
+      circle.classList.add("recording");
+      ring.classList.add("recording");
+
+      return true;
+    } catch (error) {
+      console.error("Error starting MediaRecorder:", error);
+      console.log("Falling back to H264MP4Encoder...");
+      return false;
+    }
+  };
+
+  const stopMediaRecording = () => {
+    if (mediaRecorder && mediaRecorder.state !== "inactive") {
+      mediaRecorder.stop();
+      isRecording = false;
+
+      // Reset UI
+      if (switchButton) switchButton.style.display = "block";
+      circle.classList.remove("recording");
+      ring.classList.remove("recording");
+
+      return true;
+    }
+    return false;
+  };
+
+  /* === Video Record Function using H264MP4Encoder === */
   const startVideoRecording = async () => {
     const sceneEl = document.querySelector("#myScene");
     if (!sceneEl) {
@@ -159,7 +311,6 @@ document.addEventListener("DOMContentLoaded", () => {
     isRecording = true;
     recordFrame();
 
-    const switchButton = document.getElementById("switchButton");
     if (switchButton) switchButton.style.display = "none";
     circle.classList.add("recording");
     ring.classList.add("recording");
@@ -202,12 +353,48 @@ document.addEventListener("DOMContentLoaded", () => {
     encoder = null;
 
     // Reset UI
-    const photoButton = document.getElementById("photoButton");
-    photoButton.style.display = "none";
-    const circle = document.querySelector(".circle");
-    const ring = document.querySelector(".ring");
+    if (switchButton) switchButton.style.display = "block";
     circle.classList.remove("recording");
     ring.classList.remove("recording");
+  };
+
+  /* === Combined recording function with fallback === */
+  const handleRecordingStart = async () => {
+    console.log("Starting video recording...");
+
+    // Try MediaRecorder first
+    let mediaRecorderStarted = false;
+
+    try {
+      // Check if MediaRecorder is supported and available
+      if (typeof MediaRecorder !== "undefined") {
+        console.log("Using MediaRecorder API");
+        mediaRecorderStarted = startMediaRecording();
+      }
+    } catch (error) {
+      console.error("MediaRecorder error:", error);
+      mediaRecorderStarted = false;
+    }
+
+    // If MediaRecorder failed or is not available, fallback to H264MP4Encoder
+    if (!mediaRecorderStarted) {
+      console.log("Falling back to H264MP4Encoder");
+      await startVideoRecording();
+    }
+  };
+
+  const handleRecordingStop = () => {
+    console.log("Stopping video recording...");
+
+    // Try stopping MediaRecorder first
+    const mediaStopped = stopMediaRecording();
+
+    // If MediaRecorder wasn't active, try stopping the encoder
+    if (!mediaStopped && encoder) {
+      stopVideoRecording();
+    }
+
+    toggleUIVisibility(true);
   };
 
   // กำหนดฟังก์ชันเริ่มต้นของปุ่มถ่ายภาพ
@@ -223,11 +410,9 @@ document.addEventListener("DOMContentLoaded", () => {
       ring.style.animation = "pulse 2s infinite";
       photoButton.onclick = () => {
         if (!isRecording) {
-          startVideoRecording();
-          isRecording = true;
+          handleRecordingStart();
         } else {
-          stopVideoRecording();
-          isRecording = false;
+          handleRecordingStop();
         }
       };
     } else {
@@ -242,7 +427,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const toggleUIVisibility = (isVisible) => {
     const uiElements = [photoButton, switchButton]; // เพิ่ม ID สลับโหมดถ้าจำเป็น
     uiElements.forEach((el) => {
-      el.style.display = isVisible ? "block" : "none";
+      if (el) el.style.display = isVisible ? "block" : "none";
     });
   };
 
@@ -254,7 +439,7 @@ document.addEventListener("DOMContentLoaded", () => {
   function removePreviewVideoElement() {
     let existingPreviewVideo = document.getElementById("previewVideo");
     if (existingPreviewVideo && previewModal.contains(existingPreviewVideo)) {
-      previewModal.removeChild(existingPreviewVideo); // แก้ไขที่นี่
+      previewModal.removeChild(existingPreviewVideo);
     }
   }
 
@@ -272,8 +457,14 @@ document.addEventListener("DOMContentLoaded", () => {
   downloadImage.addEventListener("click", () => {
     const link = document.createElement("a");
     if (isVideoMode) {
-      link.href = previewVideo.src;
-      link.download = "recorded_video.mp4"; // เปลี่ยนเป็น .mp4
+      const previewVideo = document.getElementById("previewVideo");
+      if (previewVideo) {
+        link.href = previewVideo.src;
+        link.download = "recorded_video." + (mediaRecorder ? "webm" : "mp4");
+      } else {
+        console.error("Preview video element not found");
+        return;
+      }
     } else {
       link.href = previewImage.src;
       link.download = "captured_image.png";
@@ -284,24 +475,31 @@ document.addEventListener("DOMContentLoaded", () => {
   // ปุ่มแชร์
   shareImage.addEventListener("click", () => {
     let urlToShare;
+    let fileExtension;
+
     if (isVideoMode) {
       const previewVideo = document.getElementById("previewVideo");
       if (previewVideo) {
         urlToShare = previewVideo.src;
+        // Check which recording method was used by examining the URL
+        fileExtension = urlToShare.includes("webm") ? "webm" : "mp4";
       } else {
         console.error("Preview video element not found");
         return;
       }
     } else {
       urlToShare = previewImage.src;
+      fileExtension = "png";
     }
 
     fetch(urlToShare)
       .then((response) => response.blob())
       .then((blob) => {
-        const file = new File([blob], isVideoMode ? "video.mp4" : "image.png", {
-          type: blob.type,
-        });
+        const file = new File(
+          [blob],
+          isVideoMode ? `video.${fileExtension}` : "image.png",
+          { type: blob.type }
+        );
         const shareData = {
           files: [file],
           title: "Shared Content",
