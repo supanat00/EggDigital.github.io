@@ -1,5 +1,4 @@
 // --- ใส่โค้ดนี้ในไฟล์ script/animations.js ---
-
 AFRAME.registerComponent("model-animation-handler", {
   schema: {
     startAnim: { type: "string", default: "start" }, // ชื่อนอนิเมชันเริ่มต้น
