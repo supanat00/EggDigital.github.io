@@ -11,6 +11,7 @@ export const textureGenComponent = {
   init() {
     const button = document.getElementById("generateButton");
     const input = document.getElementById("promptInput");
+    const inputContainer = document.getElementById("input-container"); // Get the container
 
     if (input && button) {
       // Initial state: button disabled if input is empty
@@ -61,6 +62,7 @@ export const textureGenComponent = {
             });
             document.querySelector("a-entity[tex-swap]").dispatchEvent(event);
           });
+          inputContainer.style.display = "none";
         } catch (error) {
           console.error("Error generating image:", error);
         } finally {
