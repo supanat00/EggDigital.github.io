@@ -2,6 +2,7 @@
 document.addEventListener("DOMContentLoaded", () => {
   const sceneEl = document.querySelector("#myScene");
   console.log("A-Frame Scene Element:", sceneEl);
+
   const photoButton = document.getElementById("photoButton");
   const toggleInput = document.getElementById("toggleInput");
   const circle = document.querySelector(".circle");
@@ -13,15 +14,11 @@ document.addEventListener("DOMContentLoaded", () => {
   const shareImage = document.getElementById("shareImage");
   let isVideoMode = false;
   let isRecording = false;
-  let encoder; // Declare encoder here to make it accessible globally
+  let mediaRecorder;
+  let recordedChunks = [];
+
   /* === Capture Image Function === */
   const captureAFrameCombined = () => {
-    const sceneEl = document.querySelector("#myScene");
-    if (!sceneEl) {
-      console.error("A-Frame scene element not found.");
-      return;
-    }
-
     const renderer = sceneEl.renderer;
     const renderCanvas = renderer.domElement;
 
@@ -78,128 +75,111 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   /* === Video Record Function === */
-  const startVideoRecording = async () => {
-    const sceneEl = document.querySelector("#myScene");
-    if (!sceneEl) {
-      console.error("A-Frame scene element not found.");
-      return null;
-    }
-
-    await new Promise((resolve) => setTimeout(resolve, 300));
-
+  const startVideoRecording = () => {
     const renderer = sceneEl.renderer;
     const renderCanvas = renderer.domElement;
     const videoEl = document.querySelector("video");
-    const isLandscape = window.innerWidth > window.innerHeight;
 
     const canvas = document.createElement("canvas");
+    const context = canvas.getContext("2d");
+    const isLandscape = window.innerWidth > window.innerHeight;
+
     canvas.width = isLandscape ? 1280 : 720;
     canvas.height = isLandscape ? 720 : 1280;
-    const context = canvas.getContext("2d", {
-      willReadFrequently: true,
-      alpha: false,
+
+    const stream = canvas.captureStream(30); // 30 FPS
+    mediaRecorder = new MediaRecorder(stream, {
+      mimeType: "video/mp4; codecs=avc1.42E01E,mp4a.40.2",
     });
 
-    context.imageSmoothingEnabled = true;
-    context.imageSmoothingQuality = "medium";
-
-    console.log("Creating encoder...");
-    encoder = await HME.createH264MP4Encoder();
-    encoder.width = canvas.width;
-    encoder.height = canvas.height;
-    encoder.frameRate = 24; // ใช้ frame rate แบบคงที่
-    encoder.quantizationParameter = 26;
-    encoder.speed = 7;
-    encoder.groupOfPictures = 20;
-    encoder.kbps = 5000;
-    encoder.initialize();
-    console.log("Encoder initialized");
-
-    const recordFrame = () => {
-      if (!isRecording) return;
-
-      try {
-        if (videoEl && videoEl.readyState >= 2) {
-          const sourceWidth = videoEl.videoWidth;
-          const sourceHeight = videoEl.videoHeight;
-          const sourceRatio = sourceWidth / sourceHeight;
-          const targetRatio = canvas.width / canvas.height;
-
-          let drawWidth, drawHeight;
-          if (sourceRatio > targetRatio) {
-            drawHeight = canvas.height;
-            drawWidth = drawHeight * sourceRatio;
-          } else {
-            drawWidth = canvas.width;
-            drawHeight = drawWidth / sourceRatio;
-          }
-
-          const offsetX = Math.floor((canvas.width - drawWidth) / 2);
-          const offsetY = Math.floor((canvas.height - drawHeight) / 2);
-
-          context.drawImage(videoEl, offsetX, offsetY, drawWidth, drawHeight);
-        }
-
-        context.drawImage(renderCanvas, 0, 0, canvas.width, canvas.height);
-
-        const imageData = context.getImageData(
-          0,
-          0,
-          canvas.width,
-          canvas.height
-        );
-        encoder.addFrameRgba(imageData.data);
-      } catch (error) {
-        console.error("Error recording frame:", error);
-      }
-
-      setTimeout(recordFrame, 1000 / encoder.frameRate);
+    mediaRecorder.ondataavailable = (event) => {
+      if (event.data.size > 0) recordedChunks.push(event.data);
     };
 
-    isRecording = true;
-    recordFrame();
+    mediaRecorder.onstop = () => {
+      const blob = new Blob(recordedChunks, { type: "video/mp4" });
+      const url = URL.createObjectURL(blob);
+      previewVideo.src = url;
+      previewModal.style.display = "block";
+      recordedChunks = []; // Reset chunks for new recordings
+    };
+
+    mediaRecorder.start();
+
+    const drawVideo = () => {
+      if (videoEl) {
+        const sourceWidth = videoEl.videoWidth;
+        const sourceHeight = videoEl.videoHeight;
+        const sourceRatio = sourceWidth / sourceHeight;
+        const targetRatio = canvas.width / canvas.height;
+
+        let drawWidth, drawHeight;
+        if (sourceRatio > targetRatio) {
+          drawHeight = canvas.height;
+          drawWidth = drawHeight * sourceRatio;
+        } else {
+          drawWidth = canvas.width;
+          drawHeight = drawWidth / sourceRatio;
+        }
+
+        const offsetX = (canvas.width - drawWidth) / 2;
+        const offsetY = (canvas.height - drawHeight) / 2;
+
+        context.drawImage(videoEl, offsetX, offsetY, drawWidth, drawHeight);
+      }
+
+      context.drawImage(renderCanvas, 0, 0, canvas.width, canvas.height);
+
+      requestAnimationFrame(drawVideo);
+    };
+
+    drawVideo();
 
     const switchButton = document.getElementById("switchButton");
     if (switchButton) switchButton.style.display = "none";
     circle.classList.add("recording");
     ring.classList.add("recording");
-
-    return true;
   };
 
-  const stopVideoRecording = async () => {
-    if (!encoder) {
-      console.error("Encoder is not initialized.");
-      return;
-    }
-
-    // Stop recording loop
-    isRecording = false;
+  const stopVideoRecording = () => {
+    mediaRecorder.stop();
 
     // Finalize recording
-    encoder.finalize();
-    const uint8Array = encoder.FS.readFile(encoder.outputFilename);
-    const url = URL.createObjectURL(
-      new Blob([uint8Array], { type: "video/mp4" })
-    );
+    mediaRecorder.onstop = () => {
+      const blob = new Blob(recordedChunks, { type: "video/mp4" });
+      const url = URL.createObjectURL(blob);
 
-    let previewVideo = document.getElementById("previewVideo");
-    if (!previewVideo) {
-      previewVideo = document.createElement("video");
-      previewVideo.id = "previewVideo";
-      previewVideo.controls = false;
-      previewVideo.autoplay = true;
-      previewVideo.loop = true;
-      previewVideo.style.cssText =
-        "max-width: 100%; border: 3px solid white; border-radius: 8px;";
-      document.getElementById("previewModal").appendChild(previewVideo);
-    }
-    previewVideo.src = url;
-    document.getElementById("previewModal").style.display = "block";
+      toggleUIVisibility(true);
+      const circle = document.querySelector(".circle");
+      const ring = document.querySelector(".ring");
+      circle.classList.remove("recording");
+      ring.classList.remove("recording");
+      // แสดงปุ่ม switch อีกครั้ง
+      const switchButton = document.getElementById("switchButton");
+      switchButton.style.display = "block"; // แสดงปุ่ม
 
-    // Clean up encoder
-    encoder.delete();
-    encoder = null;
+      // สร้างหรือค้นหาองค์ประกอบ video สำหรับ preview
+      let previewVideo = document.getElementById("previewVideo");
+      if (!previewVideo) {
+        previewVideo = document.createElement("video");
+        previewVideo.id = "previewVideo";
+        previewVideo.controls = false;
+        previewVideo.autoplay = true;
+        previewVideo.loop = true;
+        previewVideo.style.cssText =
+          "max-width: 100%; border: 3px solid white; border-radius: 8px;";
+        // ตรวจสอบว่า previewModal มีใน DOM แล้วเพิ่ม previewVideo ในนั้น
+        const previewModal = document.getElementById("previewModal");
+        if (previewModal) {
+          previewModal.appendChild(previewVideo);
+        }
+      }
+      previewVideo.src = url;
+      toggleUIVisibility(false);
+      previewModal.style.display = "block"; // แสดง modal ที่มี video
+      // Clean up encoder
+      recordedChunks = []; // รีเซ็ต chunks สำหรับบันทึกครั้งถัดไป
+    };
 
     // Reset UI
     const photoButton = document.getElementById("photoButton");
@@ -273,7 +253,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const link = document.createElement("a");
     if (isVideoMode) {
       link.href = previewVideo.src;
-      link.download = "recorded_video.mp4"; // เปลี่ยนเป็น .mp4
+      link.download = "recorded_video.webm"; // เปลี่ยนเป็น .mp4
     } else {
       link.href = previewImage.src;
       link.download = "captured_image.png";
