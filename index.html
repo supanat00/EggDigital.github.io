@@ -7,11 +7,19 @@
   <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
   <script src="https://cdn.jsdelivr.net/gh/donmccurdy/aframe-extras@v6.1.1/dist/aframe-extras.min.js"></script>
-  <script src="main.js"></script>
+  <script type="module" src="main.js"></script>
   <script src="https://unpkg.com/h264-mp4-encoder/embuild/dist/h264-mp4-encoder.web.js"></script>
   <script type="module" src="script/camera.js"></script>
   <script src="script/animations.js"></script>
   <link rel="stylesheet" href="styles.css">
+  <script type="importmap">
+        {
+          "imports": {
+            "three": "https://unpkg.com/three@0.161.0/build/three.module.js",
+            "three/examples/jsm/loaders/GLTFLoader": "https://unpkg.com/three@0.161.0/examples/jsm/loaders/GLTFLoader.js"
+          }
+        }
+  </script>
 </head>
 
 <body>
@@ -19,19 +27,56 @@
   <a-scene id="myScene" screenshot mindar-image="imageTargetSrc: ./assets/targets/targets.mind;" color-space="sRGB"
     renderer="colorManagement: true, physicallyCorrectLights" vr-mode-ui="enabled: false"
     device-orientation-permission-ui="enabled: false">
+
     <!-- <a-light type="ambient" color="#444"></a-light> -->
     <a-light type="directional" color="#FFF" position="0 1 1"></a-light>
+
+    <!-- Assets -->
     <a-assets>
       <a-asset-item id="avatarModel" src="./assets/models/egg-digital.glb"></a-asset-item>
-      <img id="newTexture1" src="./assets/textures/mug_white.jpg">
-      <img id="newTexture2" src="./assets/textures/egg-logo.png">
+      <a-assets-item id="imageFile" src="assets/textures/mug_white.jpg"></a-asset-item>
+        <img id="newTexture1" src="./assets/textures/mug_white.jpg">
+        <img id="newTexture2" src="./assets/textures/egg-logo.png">
+
+        <!-- Set 1 -->
+        <img id="imageFileSet101" src="./assets/textures/smoke/0001.png">
+        <img id="imageFileSet102" src="./assets/textures/smoke/0002.png">
+        <img id="imageFileSet103" src="./assets/textures/smoke/0003.png">
+        <img id="imageFileSet104" src="./assets/textures/smoke/0004.png">
+        <img id="imageFileSet105" src="./assets/textures/smoke/0005.png">
+        <img id="imageFileSet106" src="./assets/textures/smoke/0006.png">
+        <img id="imageFileSet107" src="./assets/textures/smoke/0007.png">
+        <img id="imageFileSet108" src="./assets/textures/smoke/0008.png">
+        <img id="imageFileSet109" src="./assets/textures/smoke/0009.png">
+        <img id="imageFileSet110" src="./assets/textures/smoke/0010.png">
+        <img id="imageFileSet111" src="./assets/textures/smoke/0011.png">
+        <img id="imageFileSet112" src="./assets/textures/smoke/0012.png">
+        <img id="imageFileSet113" src="./assets/textures/smoke/0013.png">
+        <img id="imageFileSet114" src="./assets/textures/smoke/0014.png">
+        <img id="imageFileSet115" src="./assets/textures/smoke/0015.png">
+        <img id="imageFileSet116" src="./assets/textures/smoke/0016.png">
+        <img id="imageFileSet117" src="./assets/textures/smoke/0017.png">
+        <img id="imageFileSet118" src="./assets/textures/smoke/0018.png">
+        <img id="imageFileSet119" src="./assets/textures/smoke/0019.png">
+        <img id="imageFileSet120" src="./assets/textures/smoke/0020.png">
+        <img id="imageFileSet121" src="./assets/textures/smoke/0021.png">
+        <img id="imageFileSet122" src="./assets/textures/smoke/0022.png">
+        <img id="imageFileSet123" src="./assets/textures/smoke/0023.png">
+        <img id="imageFileSet124" src="./assets/textures/smoke/0024.png">
+        <img id="imageFileSet125" src="./assets/textures/smoke/0025.png">
+        <img id="imageFileSet126" src="./assets/textures/smoke/0026.png">
+        <img id="imageFileSet127" src="./assets/textures/smoke/0027.png">
+        <img id="imageFileSet128" src="./assets/textures/smoke/0028.png">
+        <img id="imageFileSet129" src="./assets/textures/smoke/0029.png">
+        <img id="imageFileSet130" src="./assets/textures/smoke/0030.png">
+    </a-assets>
     </a-assets>
 
     <a-camera position="0 0 0" look-controls="enabled: false" wasd-controls-enabled="false"></a-camera>
 
     <a-entity id="targetEntity" mindar-image-target="targetIndex: 0" model-animation-handler>
-      <a-entity id="avatarModelEntity" rotation="0 0 0 " position="0 0 0" scale="5 5 5"
-        gltf-model="#avatarModel"></a-entity>
+      <a-entity id="avatarModelEntity" rotation="0 0 0 " position="0 0 0" scale="5 5 5" gltf-model="#avatarModel"
+        tex-swap tex-gen smoke></a-entity>
     </a-entity>
   </a-scene>
 
@@ -46,6 +91,11 @@
             stroke="#FFFFFF"></circle>
         </svg>
       </div>
+    </div>
+    <!-- Input Prompt & Generate Button --> <!-- ช่องกรอก Prompt และปุ่ม Generate -->
+    <div id="input-container">
+      <input type="text" id="promptInput" placeholder="Type to create your Red cup" style="width: 300px;">
+      <button id="generateButton" disabled>Generate</button>
     </div>
     <!-- Switch Capture/Video Mode Button -->
     <div class="switch-button" id="switchButton">

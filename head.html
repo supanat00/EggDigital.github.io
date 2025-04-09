@@ -1,0 +1,17 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/donmccurdy/aframe-extras@v6.1.1/dist/aframe-extras.min.js"></script>
+<script src="main.js"></script>
+<script src="https://unpkg.com/h264-mp4-encoder/embuild/dist/h264-mp4-encoder.web.js"></script>
+<script type="module" src="script/camera.js"></script>
+<script src="script/animations.js"></script>
+<script type="module">
+    import { textureSwapComponent } from 'script/tex-swap.js';
+    AFRAME.registerComponent('tex-swap', textureSwapComponent);
+
+    import { SmokeComponent } from 'script/smoke.js'
+    AFRAME.registerComponent('smoke', SmokeComponent)
+</script>
+<link rel="stylesheet" href="styles.css">

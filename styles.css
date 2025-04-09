@@ -28,6 +28,48 @@ html {
   align-items: center;
 }
 
+#input-container {
+  display: flex;
+  flex-direction: column; /* จัดเรียงในแนวตั้ง */
+  justify-content: center; /* จัดให้อยู่กลางแนวตั้ง */
+  align-items: center; /* จัดให้อยู่กลางแนวนอน */
+  position: absolute;
+  bottom: 2%; /* ระยะห่างจากด้านล่าง */
+  width: 100%; /* เพิ่มความกว้างให้เต็ม */
+}
+
+#promptInput {
+  font-family: "Kanit", sans-serif;
+  padding: 10px 10px;
+  height: 20%;
+  max-height: 80px;
+  font-size: 16px;
+  border: 2px solid #f0f0f0; /* slightly off-white border */
+  border-radius: 25px;
+  width: 80%;
+  max-width: 400px;
+  margin-bottom: 10%;
+  text-align: center;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+#generateButton {
+  font-family: "Kanit", sans-serif;
+  position: relative;
+  width: 65px;
+  height: 65px;
+  padding: 10px 10px;
+  font-size: 14px;
+  font-weight: bold;
+  text-align: center;
+  border: 3px solid #000000; /* slightly off-white border */
+  border-radius: 50% 50% 50% 50%;
+  color: #000000;
+}
+#generateButton:enabled {
+  background-color: rgba(255, 255, 255, 0);
+  cursor: pointer;
+}
+
 /* ============== Camera UI ============== */
 /* === Photo-Button/Rec-Button === */
 .photo-button {
