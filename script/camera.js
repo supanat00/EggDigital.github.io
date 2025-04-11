@@ -9,11 +9,8 @@ document.addEventListener("DOMContentLoaded", () => {
   const ring = document.querySelector(".ring");
   const previewModal = document.getElementById("previewModal");
   const previewImage = document.getElementById("previewImage"); // Assume this exists for image preview
-  // const previewVideo = document.getElementById("previewVideo"); // Defined later for video
+  // const previewVideo = document.getElementById("previewVideo"); // ไม่ต้องประกาศตรงนี้แล้ว เพราะจะสร้าง dynamic
   const closePreview = document.getElementById("closePreview");
-  const previewContentWrapper = previewModal.querySelector(
-    ".preview-content-wrapper"
-  );
   const shareImage = document.getElementById("shareImage");
   const switchButton = document.getElementById("switchButton"); // Get switch button element
 
@@ -47,7 +44,6 @@ document.addEventListener("DOMContentLoaded", () => {
     !bottomOverlay ||
     !cameraControls ||
     !inputContainer ||
-    !previewContentWrapper ||
     !promptInput ||
     !generateButton
   ) {
@@ -110,69 +106,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
       const data = canvas.toDataURL("image/png");
 
-      // <<< MODIFY: Use image onload handler >>>
-      previewImage.onload = () => {
-        // *** ADD ONLOAD ***
-        console.log("Preview image loaded.");
-        if (previewContentWrapper) {
-          // Remove/hide existing video within wrapper
-          const existingVideo =
-            previewContentWrapper.querySelector("video#previewVideo");
-          if (
-            existingVideo &&
-            existingVideo.parentNode === previewContentWrapper
-          ) {
-            existingVideo.pause();
-            existingVideo.src = "";
-            previewContentWrapper.removeChild(existingVideo);
-          }
-          previewImage.style.display = "block"; // Show image
-        }
-        // Show modal AFTER image is loaded
-        if (bottomOverlay) bottomOverlay.style.display = "none";
-        previewModal.style.display = "flex";
-        toggleUIVisibility(false);
-      };
-      previewImage.onerror = () => {
-        // <<< ADD Error Handling >>>
-        console.error("Preview image failed to load.");
-        alert("ไม่สามารถโหลดรูปภาพตัวอย่างได้");
-      };
-
       previewImage.src = data; // Set path to the captured image
       previewModal.style.display = "flex";
       previewImage.style.display = "block"; // Ensure image is visible
       bottomOverlay.style.display = "none";
       toggleUIVisibility(false); // Pass the specific elements to hide
     });
-  };
-
-  // Helper function to remove the video preview element
-  function removePreviewVideoElement() {
-    // <<< MODIFY: Ensure checks wrapper >>>
-    if (previewContentWrapper) {
-      let existingPreviewVideo =
-        previewContentWrapper.querySelector("video#previewVideo");
-      if (existingPreviewVideo) {
-        // Check parent again before removing
-        if (existingPreviewVideo.parentNode === previewContentWrapper) {
-          existingPreviewVideo.pause();
-          existingPreviewVideo.src = "";
-          previewContentWrapper.removeChild(existingPreviewVideo);
-        }
-        return; // Removed or already gone from wrapper
-      }
-    }
-    // No fallback needed if wrapper logic is primary
-  }
-
-  // <<< (ต้องมี helper function นี้) >>>
-  // Helper to reset UI elements related to recording state
-  const resetUIAfterRecordingAttempt = () => {
-    circle.classList.remove("recording");
-    ring.classList.remove("recording");
-    if (switchButton) switchButton.style.display = "inline-block"; // Use inline-block for switch
-    isRecording = false; // Ensure state is reset
   };
 
   /* === Video Record Function === */
@@ -242,6 +181,7 @@ document.addEventListener("DOMContentLoaded", () => {
     ring.classList.add("recording");
   };
 
+  // =================== แก้ไขฟังก์ชันนี้ ===================
   const stopVideoRecording = () => {
     mediaRecorder.stop();
 
@@ -251,46 +191,52 @@ document.addEventListener("DOMContentLoaded", () => {
       const url = URL.createObjectURL(blob);
 
       toggleUIVisibility(true);
-      const circle = document.querySelector(".circle");
-      const ring = document.querySelector(".ring");
       circle.classList.remove("recording");
       ring.classList.remove("recording");
-      // แสดงปุ่ม switch อีกครั้ง
-      const switchButton = document.getElementById("switchButton");
-      switchButton.style.display = "block"; // แสดงปุ่ม
 
-      // สร้างหรือค้นหาองค์ประกอบ video สำหรับ preview
+      // แสดงปุ่ม switch อีกครั้ง
+      switchButton.style.display = "block";
+
+      // ค้นหา preview-content-wrapper ที่จะใส่ video ลงไป
+      let previewContentWrapper = document.querySelector(
+        "#previewModal .preview-content-wrapper"
+      );
+      if (!previewContentWrapper) {
+        console.error("Preview content wrapper not found!");
+        return;
+      }
+
+      // ค้นหาหรือสร้าง element video สำหรับ preview
       let previewVideo = document.getElementById("previewVideo");
       if (!previewVideo) {
+        // สร้าง video element ใหม่
         previewVideo = document.createElement("video");
         previewVideo.id = "previewVideo";
         previewVideo.controls = false;
         previewVideo.autoplay = true;
         previewVideo.loop = true;
         previewVideo.style.cssText =
-          "max-width: 100%; border: 3px solid white; border-radius: 8px;";
-        // ตรวจสอบว่า previewModal มีใน DOM แล้วเพิ่ม previewVideo ในนั้น
-        const previewModal = document.getElementById("previewModal");
-        if (previewModal) {
-          previewModal.appendChild(previewVideo);
-        }
-      }
-      previewVideo.src = url;
-      toggleUIVisibility(false);
-      previewModal.style.display = "flex"; // แสดง modal ที่มี video
-      bottomOverlay.style.display = "none";
-      // Clean up encoder
-      recordedChunks = []; // รีเซ็ต chunks สำหรับบันทึกครั้งถัดไป
-    };
+          "max-width: 100%; border: 3px solid white; border-radius: 8px; display: block;";
 
-    // Reset UI
-    const photoButton = document.getElementById("photoButton");
-    photoButton.style.display = "none";
-    const circle = document.querySelector(".circle");
-    const ring = document.querySelector(".ring");
-    circle.classList.remove("recording");
-    ring.classList.remove("recording");
+        // เพิ่ม video element ลงใน preview-content-wrapper
+        previewContentWrapper.appendChild(previewVideo);
+      }
+
+      // กำหนด source ให้กับ video และแสดง modal
+      previewVideo.src = url;
+      previewModal.style.display = "flex";
+      bottomOverlay.style.display = "none";
+
+      // ซ่อน image preview ถ้ามีอยู่
+      if (previewImage) {
+        previewImage.style.display = "none";
+      }
+
+      // Reset chunks สำหรับการบันทึกครั้งต่อไป
+      recordedChunks = [];
+    };
   };
+  // =================== สิ้นสุดการแก้ไข ===================
 
   // กำหนดฟังก์ชันเริ่มต้นของปุ่มถ่ายภาพ (จะถูก override โดย toggle)
   photoButton.onclick = captureAFrameCombined;
@@ -327,22 +273,28 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   };
 
+  // =================== แก้ไขฟังก์ชันนี้ ===================
   // ปุ่มปิดหน้าต่างพรีวิว
   closePreview.addEventListener("click", () => {
     previewModal.style.display = "none";
-    previewImage.style.display = "none"; // Hide image preview
+    previewImage.style.display = "none"; // ซ่อนการแสดงผลรูปภาพ
 
-    // Stop and remove video preview if exists
-    let existingPreviewVideo = document.getElementById("previewVideo");
-    if (existingPreviewVideo) {
-      existingPreviewVideo.pause(); // Stop playback
-      existingPreviewVideo.src = ""; // Release resource
-      removePreviewVideoElement(); // Remove from DOM
+    // หยุดและลบ video preview ถ้ามีอยู่
+    let previewVideo = document.getElementById("previewVideo");
+    if (previewVideo) {
+      previewVideo.pause(); // หยุดการเล่น
+      previewVideo.src = ""; // ปล่อยทรัพยากร
+
+      // ลบออกจาก DOM
+      if (previewVideo.parentNode) {
+        previewVideo.parentNode.removeChild(previewVideo);
+      }
     }
 
     bottomOverlay.style.display = "flex";
     toggleUIVisibility(true); // แสดง UI กล้องหลักอีกครั้ง
   });
+  // =================== สิ้นสุดการแก้ไข ===================
 
   // ปุ่มแชร์
   shareImage.addEventListener("click", async () => {
@@ -448,56 +400,15 @@ document.addEventListener("DOMContentLoaded", () => {
   }
   // --- สิ้นสุดการเพิ่ม Event Listener ---
 
-  // <<< (ต้องมี helper function นี้ หรือนำมาจากโค้ดก่อนหน้า) >>>
-  // Helper to display the video preview
-  const displayVideoPreview = (videoUrl) => {
-    removePreviewVideoElement(); // remove old video first
-
-    let previewVideo = document.createElement("video");
-    previewVideo.id = "previewVideo";
-    previewVideo.controls = false;
-    previewVideo.autoplay = true;
-    previewVideo.loop = true;
-    previewVideo.muted = true; // Important for autoplay
-    previewVideo.style.cssText = `
-        display: block; max-width: 100%; max-height: 100%; height: auto;
-        border: 3px solid white; border-radius: 18px;
-    `; // Apply styles matching CSS
-    previewVideo.onclick = () => {
-      if (previewVideo.paused) previewVideo.play();
-      else previewVideo.pause();
-    };
-
-    previewVideo.onloadedmetadata = () => {
-      console.log("Preview video metadata loaded.");
-      if (previewContentWrapper) {
-        // Hide image within wrapper
-        const imgPreview = previewContentWrapper.querySelector("#previewImage");
-        if (imgPreview) imgPreview.style.display = "none";
-        previewVideo.style.display = "block"; // Ensure video visible
-      }
-      // Show modal AFTER metadata is loaded
-      if (bottomOverlay) bottomOverlay.style.display = "none";
-      previewModal.style.display = "flex";
-      toggleUIVisibility(false);
-      resetUIAfterRecordingAttempt(); // Reset button style etc.
-    };
-    previewVideo.onerror = (event) => {
-      console.error("Preview video failed to load:", event);
-      alert("ไม่สามารถโหลดวิดีโอตัวอย่างได้");
-      if (previewModal.style.display !== "none") closePreview.click();
-    };
-
-    // Append video to wrapper *BEFORE* setting src
-    if (previewContentWrapper) {
-      // <<< *** Ensure appending to wrapper *** >>>
-      previewContentWrapper.insertBefore(
-        previewVideo,
-        previewContentWrapper.firstChild
-      );
-      previewVideo.src = videoUrl; // Set src AFTER appending and attaching handlers
-    } else {
-      console.error("Preview content wrapper not found! Cannot display video.");
+  // =================== แก้ไขฟังก์ชันนี้ ===================
+  // Helper function to remove the video preview element
+  function removePreviewVideoElement() {
+    let previewVideo = document.getElementById("previewVideo");
+    if (previewVideo && previewVideo.parentNode) {
+      previewVideo.pause();
+      previewVideo.src = "";
+      previewVideo.parentNode.removeChild(previewVideo);
     }
-  };
+  }
+  // =================== สิ้นสุดการแก้ไข ===================
 }); // End of DOMContentLoaded listener
