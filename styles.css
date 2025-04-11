@@ -26,58 +26,112 @@ html {
   flex-direction: column;
   justify-content: flex-end;
   align-items: center;
+  pointer-events: none; /* อนุญาตให้คลิกทะลุ overlay หลักได้ */
+}
+
+.bottom-overlay {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 120px;
+  /* height: 120px; /* อาจใช้ padding แทน หรือ height: auto */
+  background-color: rgba(
+    0,
+    0,
+    0,
+    0.356
+  ); /* <<< เปลี่ยนจาก background-color: black และ opacity: 0.7 มาเป็น rgba */
+  display: flex;
+  flex-direction: column; /* จัดเรียงแนวตั้ง */
+  justify-content: center; /* จัดให้อยู่กลางแนวตั้ง */
+  align-items: center; /* จัดให้อยู่กลางแนวนอน */
+  z-index: 999;
+  gap: 15px; /* ระยะห่างระหว่าง input-container และ camera-controls */
+  pointer-events: auto; /* ทำให้ element ภายใน bottom-overlay คลิกได้ */
 }
 
 #input-container {
   display: flex;
-  flex-direction: column; /* จัดเรียงในแนวตั้ง */
-  justify-content: center; /* จัดให้อยู่กลางแนวตั้ง */
-  align-items: center; /* จัดให้อยู่กลางแนวนอน */
-  position: absolute;
-  bottom: 2%; /* ระยะห่างจากด้านล่าง */
-  width: 100%; /* เพิ่มความกว้างให้เต็ม */
+  justify-content: center; /* จัด input กับ button กลาง */
+  align-items: center;
+  width: 100%; /* ปรับความกว้างตามต้องการ */
+  max-width: 500px; /* กำหนดความกว้างสูงสุด */
+  gap: 10px; /* ระยะห่างระหว่าง input กับ button */
+  opacity: 1;
+  /* position: relative; /* ไม่จำเป็นต้องใช้ absolute อีกต่อไป */
 }
 
 #promptInput {
   font-family: "Kanit", sans-serif;
-  padding: 10px 10px;
-  height: 20%;
-  max-height: 80px;
-  font-size: 16px;
-  border: 2px solid #f0f0f0; /* slightly off-white border */
+  position: absolute;
+  top: -25px;
+  padding: 10px 0px; /* ปรับ padding */
+  font-size: 18px;
+  border: 2px solid #f0f0f0;
   border-radius: 25px;
   width: 80%;
-  max-width: 400px;
-  margin-bottom: 10%;
   text-align: center;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  /* margin-bottom: 10px; */ /* <<< ลบออก (ใช้ gap ของ parent แทน) */
 }
+
 #generateButton {
   font-family: "Kanit", sans-serif;
-  position: relative;
-  width: 65px;
-  height: 65px;
-  padding: 10px 10px;
+  /* position: absolute; */ /* <<< ลบออก */
+  width: 60px; /* ปรับขนาดตามความเหมาะสม */
+  height: 60px; /* ปรับขนาดตามความเหมาะสม */
+  padding: 0; /* ลบ padding เดิมถ้าไม่ต้องการ */
   font-size: 14px;
   font-weight: bold;
   text-align: center;
-  border: 3px solid #000000; /* slightly off-white border */
-  border-radius: 50% 50% 50% 50%;
+  border: 3px solid #000000;
+  border-radius: 50%;
   color: #000000;
-}
-#generateButton:enabled {
-  background-color: rgba(255, 255, 255, 0);
+  background-color: rgb(255, 255, 255);
   cursor: pointer;
+  flex-shrink: 0; /* ไม่ให้ปุ่มหดขนาด */
+  position: absolute;
+  justify-content: center;
+  align-items: center;
+  /* margin-top: 10px; */ /* <<< ลบออก */
 }
 
 /* ============== Camera UI ============== */
+/* Overlay */
+.camera-controls {
+  justify-content: center;
+  align-items: center;
+  position: absolute; /* <<< เปลี่ยนเป็น absolute */
+  width: 100%; /* ปรับความกว้างตามต้องการ */
+}
+/* Back Button */
+.back-button {
+  position: absolute;
+  left: 5%;
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background-color: rgba(255, 255, 255, 0.2);
+  border: none;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  order: 1;
+  fill: white;
+}
+
+.back-button svg {
+  width: 24px; /* ปรับขนาด icon */
+  height: 24px; /* ปรับขนาด icon */
+  fill: white;
+}
+
 /* === Photo-Button/Rec-Button === */
 .photo-button {
   width: 80px;
   height: 80px;
-  bottom: 5%;
-  left: 50%;
-  transform: translateX(-50%);
   position: absolute;
 }
 .circle {
@@ -153,7 +207,6 @@ html {
 }
 
 .circle.recording:before {
-  content: "\2764"; /* Heart Icon */
   font-size: 30px; /* ลดขนาดลง */
   color: #fff;
   position: absolute;
@@ -167,18 +220,6 @@ html {
   transform: translate(-50%, -50%) scale(1.2); /* ให้ใหญ่ขึ้นเล็กน้อยเมื่อกด */
 }
 
-@keyframes heartBeat {
-  from {
-    transform: scale(1);
-  }
-  50% {
-    transform: scale(1.1);
-  }
-  to {
-    transform: scale(1);
-  }
-}
-
 .photo-button:active .ring {
   opacity: 1;
 }
@@ -186,16 +227,11 @@ html {
   opacity: 0.5;
 }
 
-.disabled-button {
-  display: none; /* หรือ `visibility: hidden;` ถ้าคุณต้องการให้ปุ่มยังคงเพิ่มพื้นที่ใน layout */
-}
-
 /* === Switch Button Mode (Capture/Video) === */
 .switch-button {
   font-size: 17px;
   position: absolute;
   right: 5%; /* ตำแหน่งมุมขวาล่าง */
-  bottom: 5%;
   display: inline-block;
   width: 64px;
   height: 34px;
@@ -261,66 +297,81 @@ html {
 /* === Preview Result === */
 #previewModal {
   position: fixed;
-  width: 80%;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  z-index: 1000; /* ให้แน่ใจว่ามันอยู่ด้านบนสุด */
-  border-radius: 10px;
-}
-/* ปุ่มดาวน์โหลด */
-#downloadImage {
-  position: absolute;
-  bottom: -50px; /* ตั้งค่าตามที่ต้องการ */
-  right: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between; /* จัดให้เนื้อหาอยู่ตรงข้ามกัน */
-  width: auto; /* กำหนดความกว้างของปุ่ม */
-  padding: 4px 12px; /* พื้นที่ในปุ่ม */
-  background-color: transparent; /* พื้นหลังโปร่งใส */
-  color: #ffffff; /* สีข้อความ */
-  border: 1px solid #ffffff; /* ขอบสีขาวบางๆ */
-  border-radius: 10px; /* มุมโค้งมน */
-  cursor: pointer;
-  outline: none; /* ยกเลิกเส้นขอบที่เกิดขึ้นเมื่อคลิก */
-  background-color: #ffa500;
-  transition: background-color 0.3s, color 0.3s; /* การเปลี่ยนแปลงที่นุ่มนวล */
+  flex-direction: column; /* Stack items vertically */
+  align-items: center; /* Center items horizontally */
+  justify-content: center; /* Center items vertically */
+  width: 100%; /* Full width */
+  height: 100%; /* Full height */
+  top: 0; /* Align top */
+  left: 0; /* Align left */
+  transform: none; /* Remove transform */
+  z-index: 1000;
+  background-color: rgba(0, 0, 0, 0.7); /* Darker background */
+  padding: 20px; /* Padding around content */
+  box-sizing: border-box;
+  pointer-events: auto;
+  overflow-y: auto; /* Allow scrolling if content is too tall */
+  /* display: none; is controlled by JS */
 }
 
-#downloadImage svg {
-  margin-left: 5px; /* ระยะห่างระหว่างข้อความและไอคอน */
+/* <<< NEW: Style for the content wrapper >>> */
+.preview-content-wrapper {
+  position: relative; /* Positioning context for close button */
+  display: inline-block; /* Allows it to shrink-wrap content */
+  max-width: 90%; /* Max width within modal padding */
+  max-height: calc(
+    100vh - 150px
+  ); /* Max height (viewport minus space for button/padding) */
+  margin-bottom: 25px; /* Space before share button */
 }
 
-/* ปุ่มแชร์ */
+/* <<< MODIFY: Style for image/video inside the wrapper >>> */
+#previewModal .preview-content-wrapper #previewImage,
+#previewModal .preview-content-wrapper video#previewVideo {
+  display: block; /* Ensure block display */
+  max-width: 100%; /* Fit wrapper width */
+  max-height: 100%; /* Fit wrapper height */
+  height: auto; /* Maintain aspect ratio */
+  border: 3px solid white;
+  border-radius: 18px; /* <<< Slightly more rounded corners for content */
+  /* margin-bottom is now on wrapper */
+}
+
+/* ปุ่มแชร์ (บันทึก) - No changes needed from previous version */
 #shareImage {
-  display: flex;
-  align-items: center;
-  justify-content: space-between; /* จัดให้เนื้อหาอยู่ตรงข้ามกัน */
-  width: auto; /* กำหนดความกว้างของปุ่ม */
-  padding: 4px 12px; /* พื้นที่ในปุ่ม */
-  background-color: transparent; /* พื้นหลังโปร่งใส */
-  color: #ffffff; /* สีข้อความ */
-  border: 1px solid #ffffff; /* ขอบสีขาวบางๆ */
-  border-radius: 10px; /* มุมโค้งมน */
+  display: block;
+  width: fit-content;
+  margin-left: auto;
+  margin-right: auto;
+  padding: 10px 40px;
+  background-color: #ffffff;
+  color: #000000;
+  border: none;
+  border-radius: 30px;
+  font-family: "Kanit", sans-serif;
+  font-size: 16px;
+  font-weight: bold;
+  text-align: center;
   cursor: pointer;
-  outline: none; /* ยกเลิกเส้นขอบที่เกิดขึ้นเมื่อคลิก */
-  position: absolute;
-  bottom: -50px; /* ตั้งค่าตามที่ต้องการ */
-  left: 10px;
-  background-color: #ffa500;
-  transition: background-color 0.3s, color 0.3s; /* การเปลี่ยนแปลงที่นุ่มนวล */
+  outline: none;
+  transition: background-color 0.3s, box-shadow 0.3s;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15), inset 0 0 0 1px rgba(0, 0, 0, 0.1);
+  pointer-events: auto;
 }
-#shareImage svg {
-  margin-left: 5px; /* ระยะห่างระหว่างข้อความและไอคอน */
+#shareImage:hover {
+  background-color: #f5f5f5;
+  box-shadow: 0 6px 10px rgba(0, 0, 0, 0.2), inset 0 0 0 1px rgba(0, 0, 0, 0.15);
 }
 
+/* ปุ่มปิด Preview */
+/* The inline style in HTML (top: 10px; right: 10px; z-index: 2; position: absolute;) handles positioning relative to wrapper */
 #closePreview {
-  position: absolute;
-  top: -35px; /* หรือตั้งค่าที่ต้องการเพื่อให้อยู่นอกกรอบ */
-  right: -35px;
   background: none;
   border: none;
-  padding: 0px;
-  margin: 0px;
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+  /* Adjust size via SVG width/height */
+  line-height: 0; /* Prevent extra space */
+  pointer-events: auto;
 }
