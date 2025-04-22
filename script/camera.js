@@ -307,7 +307,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const isVideoPreviewActive =
       currentPreviewVideo &&
       currentPreviewVideo.src &&
-      previewModal.style.display === "block";
+      previewModal.style.display === "flex";
 
     try {
       if (isVideoPreviewActive) {
@@ -320,7 +320,7 @@ document.addEventListener("DOMContentLoaded", () => {
       } else if (
         previewImage.src &&
         previewImage.style.display !== "none" &&
-        previewModal.style.display === "block"
+        previewModal.style.display === "flex"
       ) {
         filename = "image.png";
         fileType = "image/png";
