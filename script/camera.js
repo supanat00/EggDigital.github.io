@@ -341,8 +341,6 @@ document.addEventListener("DOMContentLoaded", () => {
       const file = new File([blob], filename, { type: fileType });
       const shareData = {
         files: [file],
-        title: none,
-        text: none,
       };
 
       if (navigator.canShare && navigator.canShare(shareData)) {
